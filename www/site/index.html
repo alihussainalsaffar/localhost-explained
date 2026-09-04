@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>localhost - it works!</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <h1>localhost</h1>
+    <p>A single-threaded epoll HTTP/1.1 server written in Rust.</p>
+
+    <h2>Demos</h2>
+    <ul>
+      <li><a href="/about.html">a static page</a></li>
+      <li><a href="/files/">directory listing</a></li>
+      <li><a href="/uploads/">uploaded files</a></li>
+      <li><a href="/session">cookies &amp; sessions</a></li>
+      <li><a href="/cgi/hello.py?name=world">CGI (python)</a></li>
+      <li><a href="/old">a redirected URL</a></li>
+      <li><a href="/definitely-not-here">a 404 with a custom error page</a></li>
+    </ul>
+
+    <h2>Upload a file</h2>
+    <form action="/uploads/" method="post" enctype="multipart/form-data">
+      <input type="file" name="file" required>
+      <button type="submit">upload</button>
+    </form>
+  </main>
+</body>
+</html>

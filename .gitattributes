@@ -1,0 +1,10 @@
+# The server targets Linux and is developed from Windows as well. Store and
+# check out every text file with LF endings so the Python test scripts and
+# the CGI scripts behave identically on both sides.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.mp4 binary

@@ -1,0 +1,42 @@
+body {
+  font-family: system-ui, sans-serif;
+  background: #10141c;
+  color: #e6e9ef;
+  display: flex;
+  justify-content: center;
+}
+
+main {
+  max-width: 42rem;
+  padding: 3rem 1.5rem;
+}
+
+h1 {
+  color: #7aa2f7;
+}
+
+a {
+  color: #9ece6a;
+}
+
+code {
+  background: #1f2530;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+form {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  background: #1a1f2b;
+  border-radius: 8px;
+}
+
+button {
+  background: #7aa2f7;
+  color: #10141c;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
