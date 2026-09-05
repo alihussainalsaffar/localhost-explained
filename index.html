@@ -613,8 +613,8 @@ D.modules = `<svg viewBox="0 0 820 330">${AR}
 const COURSE = [
 { t:"Before we start", beats:[
   { v:{k:"title", h:"This is the whole project, <em>end to end</em>.",
-      sub:"Roughly ninety minutes. Concepts first, then the subject, then every file of code line by line, then the audit questions with the answers you should give."},
-    say:"Welcome. This is a complete walk-through of your localhost project — an HTTP server written in Rust, running on one process, one thread, and one epoll instance. We are going to start from the very bottom: what a web server actually is, what HTTP actually looks like on the wire, and why a single thread can serve thousands of clients at once. Then we will read the code, file by file, function by function. And at the end we will go through the audit sheet question by question, so that when someone asks you why there is only one epoll call, you will not be reciting a sentence you memorised. You will actually know." },
+      sub:"About two hours. First what you were asked to build and what you will be asked at the audit; then the whole thing running, command by command; then the concepts; then every file of code line by line; then the audit answers."},
+    say:"Welcome. This is a complete walk-through of your localhost project — an HTTP server written in Rust, running on one process, one thread, and one epoll instance. We start with the subject itself, read line by line, and then the audit sheet, so that you know what you were asked to build and what you will be asked about before anything else. Then we make the server run and drive every feature from the terminal. Then we go back to the very bottom: what a web server actually is, what HTTP looks like on the wire, and why a single thread can serve thousands of clients at once. Then we read the code, file by file, function by function. And at the end we return to the audit sheet with the answers, so that when someone asks you why there is only one epoll call, you will not be reciting a sentence you memorised. You will actually know." },
   { v:{k:"points", h:"How to use this player", items:[
       "<b>Space</b> plays and pauses. The narration reads every slide out loud and moves on by itself.",
       "The two <b>circular ⟲5 / ⟳5 buttons</b> either side of play jump <b>back and forward five seconds</b> — keys <b>J</b> and <b>L</b>, or <b>Shift</b> with an arrow. Missed a sentence? Tap ⟲5 and hear it again.",
@@ -629,6 +629,141 @@ const COURSE = [
       "Explain <b>why</b> each design choice was made, not just what the code does.",
       "Defend the awkward parts honestly — including the one place the code is not perfectly non-blocking."]},
     say:"Here is what you should walk away with. First, the ability to explain how an HTTP server works, from the TCP socket up to the response bytes, without hand-waving. Second, knowing the exact lines that answer every audit question, so you can point at the screen instead of searching. Third, and most importantly, understanding why each choice was made, not just what the code does. Auditors can tell the difference in about ten seconds. And finally, being able to defend the awkward parts honestly — including the one place in this codebase where the code is not perfectly non-blocking, which we will look at squarely rather than hoping nobody notices." }
+]},
+
+{ t:"The subject, requirement by requirement", beats:[
+  { v:{k:"title", h:"First: <em>what were you actually asked to build?</em>",
+      sub:"Before any code, we read the subject itself — the real wording — and turn each line into what it actually demands. Almost every design decision in this project is a direct answer to one of these sentences."},
+    say:"Before we run anything or read any code, let us read the subject. The real wording, line by line. This matters more than it sounds, for two reasons. First, almost every design decision in this project is a direct answer to one specific sentence in this document — so once you know the sentences, the code stops looking like arbitrary choices and starts looking like consequences. And second, in the audit you will be asked to justify your choices. The strongest possible justification is being able to say: the subject requires this, here is the line, and here is the code that satisfies it." },
+  { v:{k:"term", h:"the subject's opening", code:`<span class="o">Finally you are going to understand how internet works from the server side.</span>
+<span class="o">The Hypertext Transfer Protocol was created in order to ensure a reliable way</span>
+<span class="o">to communicate on a request/response base.</span>
+
+<span class="o">This protocol is used by servers and clients (usually browsers) to serve</span>
+<span class="o">content and it is the backbone of the World Wide Web ...</span>
+
+<span class="g">Here you will learn the basics of the protocol and a good place to start</span>
+<span class="g">could be the HTTP/1.1 RFC.</span>`},
+    say:"Here is how the subject opens. Note the phrase request slash response base — that is the whole shape of the protocol in three words. A client asks, a server answers, and that exchange is self-contained. And notice the last line: it points you at the HTTP one point one R-F-C, document nine one one two. You do not need to read all of it, but knowing that the protocol is a written standard, and that your server is implementing a specification rather than inventing behaviour, is the right mindset. When you are unsure what your server should do in some edge case, there is a document that says." },
+  { v:{k:"term", h:"Instructions — the language and the ground rules", code:`<span class="o">- The project must be written in </span><span class="g">Rust</span><span class="o">.</span>
+<span class="o">- You can use the </span><span class="g">libc</span><span class="o"> crate for functions as </span><span class="g">epoll</span><span class="o"> or equivalents and any</span>
+<span class="o">  other necessary system call that Rust do not implement natively.</span>
+<span class="o">- You may need to use </span><span class="g">unsafe</span><span class="o"> keyword for some operations (don't abuse it).</span>
+
+<span class="e">&gt; You can't use crates that already implement server features</span>
+<span class="e">&gt; like tokio or nix.</span>`},
+    say:"The instructions, and there are only three plus a prohibition. Rust. You may use the libc crate for system calls that Rust does not expose itself — which is exactly what epoll is. You may need the unsafe keyword, with the parenthetical warning: do not abuse it. And the prohibition, which is the important one: you cannot use crates that already implement server features, naming tokio and nix specifically. The reason is obvious once you say it out loud — the entire point of this project is to write the event loop yourself. Tokio would write it for you. In this codebase, unsafe appears in exactly one place, the epoll wrapper, because raw C calls have no safety guarantees. That is the honest answer to did you abuse unsafe: three functions, all in one struct." },
+  { v:{k:"dia", d:"reqs", cap:"The sixteen server requirements, sorted by how hard they actually are."},
+    say:"Now the main list. The subject gives sixteen bullet points for the server, and they are not equally difficult — so here they are sorted by how much work each one really is. On the left, the ones that are essentially bookkeeping: methods, status codes, error pages, uploads, cookies. In the middle, ones that need real care but are self-contained: HTTP one point one compatibility, chunked bodies, multiple ports. And on the right, in red, the four that shape the entire architecture: one process and one thread, epoll called only once per client-server communication, all reads and writes passing through epoll, and all I O non-blocking. Those four are not features you add. They are constraints that decide how every other line of the program has to be written. If you understand nothing else from the subject, understand that those four are the project." },
+  { v:{k:"term", h:"the server, part one — the guarantees", code:`<span class="o">- It </span><span class="g">never</span><span class="o"> crashes.</span>
+<span class="o">- All requests </span><span class="g">timeout</span><span class="o"> if they are taking too long.</span>
+<span class="o">- It can listen on </span><span class="g">multiple ports</span><span class="o"> and instantiate multiple servers at the same time.</span>
+<span class="o">- You use only </span><span class="e">one process and one thread</span><span class="o">.</span>
+<span class="o">- It receives a request from the browser/client and send a response</span>
+<span class="o">  using the HTTP header and body.</span>`},
+    say:"The first five bullets are guarantees about behaviour. It never crashes — note the emphasis is in the original, and this is checked by throwing garbage at it during the audit. All requests time out if they are taking too long, which protects you from a client that connects and then goes silent forever. It can listen on multiple ports and run multiple servers at once, which is why the configuration file has repeatable server blocks. It uses only one process and one thread — no threading, and the only fork allowed anywhere is for CGI. And it receives a request and sends a response using the HTTP header and body, which sounds trivial but is the sentence that means you must build the response yourself, headers and all, rather than handing a file to a library." },
+  { v:{k:"term", h:"the server, part two — compatibility and features", code:`<span class="o">- It is compatible with </span><span class="g">HTTP/1.1</span><span class="o"> protocol.</span>
+<span class="o">- You can compare your results with </span><span class="g">NGINX</span><span class="o"> which will be used as the reference.</span>
+<span class="o">- It is compatible with the last version of your chosen browser.</span>
+<span class="o">- It manages at least [</span><span class="g">GET, POST, DELETE</span><span class="o">] methods.</span>
+<span class="o">- It is able to receive </span><span class="g">file uploads</span><span class="o"> made by the client.</span>
+<span class="o">- It handles </span><span class="g">cookies and sessions</span><span class="o">.</span>
+<span class="o">- You should create default error pages for at least [</span><span class="g">400,403,404,405,413,500</span><span class="o">].</span>`},
+    say:"The next seven are features, and two of them deserve a comment. First, nginx will be used as the reference — that is a very useful sentence, because whenever you are unsure how your server should behave, the answer is: do what nginx does. That is why this project redirects a directory URL to add a trailing slash, and why it serves HEAD wherever GET is allowed. Second, compatible with the last version of your chosen browser. A browser is a much harsher test than curl: get a Content-Length wrong by one byte and the page simply hangs or fails to render, whereas curl might not care. If it works in a browser, your framing is right. And note the error page list is at least those six codes, so more is fine." },
+  { v:{k:"callout", tone:"warn", h:"These four lines are the entire architecture",
+      body:"<b>It calls epoll (or equivalent) only once for each client/server communication.</b><br><b>All reads and writes should pass by epoll or equivalent API.</b><br><b>All I/O operations should be non-blocking.</b><br><b>You should manage chunked and unchunked requests.</b><br><br>The first three are why this program is built as an event loop with a per-connection state machine instead of as ordinary top-to-bottom code. Read them again after you have seen <code>server.rs</code> and they will read very differently."},
+    say:"And then these four lines, which I have pulled out because they matter more than everything else on the page. It calls epoll, or an equivalent, only once for each client-server communication. All reads and writes should pass by epoll. All I O operations should be non-blocking. And you should manage chunked and unchunked requests. The first three are the reason this program is an event loop with a state machine for each connection, instead of ordinary code that reads a request and then writes a response. We will spend three whole chapters on why, later on. For now just register that these are requirements, not suggestions, and that the auditor has a specific question for each of them." },
+  { v:{k:"term", h:"the CGI section — six lines, and each maps to code", code:`<span class="o">- Based on the </span><span class="g">file extension</span><span class="o"> the server will execute the corresponding CGI.</span>
+<span class="o">- You need to implement </span><span class="g">only one</span><span class="o"> CGI of your choice.</span>
+<span class="o">- You are allowed to </span><span class="g">fork a new process</span><span class="o"> to run the CGI.</span>
+<span class="o">- CGI expects the file to process as </span><span class="g">first argument</span><span class="o"> and </span><span class="g">EOF as end of the body</span><span class="o">.</span>
+<span class="o">- Pay attention to the </span><span class="g">directory</span><span class="o"> where the CGI will run for correct relative paths.</span>
+<span class="o">- The CGI will check </span><span class="g">PATH_INFO</span><span class="o"> environment variable to define the full path.</span>`},
+    say:"The CGI section is six lines and every one of them turns into a specific line of code, so it is worth memorising the shape. The interpreter is chosen by file extension. You only need one. You are allowed to fork a process — this is the single exception to the one-process rule, granted explicitly. The script gets the file as its first argument, and end-of-file marks the end of the body, which means the server must close the pipe after writing the body or the script will wait forever. You must set the working directory to the script's own folder so relative paths inside it work. And you must set the PATH INFO environment variable to the full path. Later, when we read cgi dot rs, you will see those last three as three consecutive lines in one function call." },
+  { v:{k:"term", h:"the configuration file — what must be configurable", code:`<span class="o">- The </span><span class="g">host</span><span class="o"> and one or multiple </span><span class="g">ports</span><span class="o"> for each server.</span>
+<span class="o">- The </span><span class="g">first server for a host:port will be the default</span><span class="o"> if the "server_name"</span>
+<span class="o">  didn't match any other server.</span>
+<span class="o">- Path to </span><span class="g">custom error pages</span><span class="o">.</span>
+<span class="o">- Limit </span><span class="g">client body size</span><span class="o"> for uploads.</span>
+<span class="o">- Setup </span><span class="g">routes</span><span class="o"> with: accepted methods · redirections · a root directory ·</span>
+<span class="o">  a default file for a directory · a CGI per extension · directory listing on/off</span>
+
+<span class="o">&gt; Routes won't need to support regular expressions.</span>
+<span class="g">&gt; There is no need to pass through epoll when reading the configuration file.</span>`},
+    say:"The configuration section tells you exactly what must be adjustable without recompiling. Host and ports per server. Custom error page paths. A client body size limit. And routes, with accepted methods, redirections, a root directory, a default file, a CGI mapping and a directory listing switch. Two of these lines are gifts and you should notice them. The one in the middle — the first server for a host and port is the default if the server name did not match — is not a hint, it is a specification of exactly how virtual host fallback must behave, so you do not have to invent it. And the last line explicitly excuses you from putting the configuration file read through epoll, which is why main dot rs can use a plain blocking read without apology." },
+  { v:{k:"term", h:"testing — and the one sentence people skip", code:`<span class="o">- Do stress tests with </span><span class="g">siege -b [IP]:[PORT]</span><span class="o">, it must stay available at all</span>
+<span class="o">  costs (availability should be up to </span><span class="g">99.5</span><span class="o">, it will be tested during audits).</span>
+<span class="o">- Create tests for as many cases as you can.</span>
+<span class="e">- You will be requested to provide and EXPLAIN your tests during the audits.</span>
+<span class="o">- You can use the language you prefer to write tests.</span>
+<span class="o">- Test possible </span><span class="g">memory leaks</span><span class="o"> before to submit the project.</span>
+<span class="o">- Once again, the server should </span><span class="g">never crash and never leak memory</span><span class="o">.</span>`},
+    say:"The testing section, and there is one line here that people consistently skip. Not the siege requirement — everybody remembers ninety-nine point five percent availability. The one in red: you will be requested to provide and explain your tests during the audits. Explain. It is not enough to have tests that pass; you have to be able to say what each one proves and why you wrote it. That is why, later in this walk-through, there is a whole slide on what each of the three test layers demonstrates. Also note that you can write the tests in any language you like, which is why the integration tests here are Python even though the server is Rust — Python opens raw sockets in three lines, and the auditor can read it." },
+  { v:{k:"points", h:"The bonus, and an honest note about it", items:[
+      "<b>Handle at least one more CGI.</b> This project has one interpreter with two scripts — the directive <code>cgi &lt;.ext&gt; &lt;interpreter&gt;</code> takes any interpreter, so adding a second is a config line.",
+      "<b>Rewrite the project in another language.</b> Not done — and it is worth saying plainly rather than being vague.",
+      "Bonuses only count once the mandatory part is <b>fully working</b>. Never trade a required behaviour for a bonus."]},
+    say:"And finally the bonus section: handle at least one more CGI, and rewrite the project in another language. It is worth being straight about these in the audit. This project has one interpreter with two scripts, and the configuration directive takes any interpreter, so adding a second language is a one-line change rather than a rewrite — say that. The second bonus is not done, and the right answer to that is simply, that is not done. Do not be vague about it. And remember the general rule: bonuses only count once the mandatory part is fully working, so never trade a required behaviour for a bonus." },
+  { v:{k:"points", h:"The subject in five sentences", items:[
+      "Write an <b>HTTP/1.1 server in Rust</b> with only the standard library and <code>libc</code>.",
+      "Run it on <b>one process and one thread</b>, using <b>one epoll</b>, with <b>every</b> read and write going through it and <b>nothing</b> blocking.",
+      "Serve real sites: routes, static files, listings, uploads, deletes, redirects, cookies, sessions, CGI, virtual hosts — all driven by a <b>configuration file</b>.",
+      "Return the <b>right status code</b> every time, and never crash, hang, or leak — whatever a client throws at it.",
+      "Then <b>prove all of that</b>, with tests you can explain and a stress run above 99.5%."]},
+    say:"So, the whole subject in five sentences. Write an HTTP one point one server in Rust with only the standard library and libc. Run it on one process and one thread using one epoll, with every read and write going through it and nothing blocking. Serve real sites — routes, static files, listings, uploads, deletes, redirects, cookies, sessions, CGI and virtual hosts — all driven by a configuration file. Return the right status code every time, and never crash, hang or leak, whatever a client throws at it. And then prove all of that, with tests you can explain and a stress run above ninety-nine point five percent. Five sentences. Everything else in this walk-through is detail underneath them." }
+]},
+
+{ t:"The audit sheet, and what it is really testing", beats:[
+  { v:{k:"title", h:"Now the sheet the auditor will be <em>reading from</em>.",
+      sub:"Same idea, but from the other side of the table. We go through the real questions in order — not to answer them yet, but so you know what is coming and what each one is quietly probing."},
+    say:"Now let us look at the same project from the other side of the table. The audit sheet is a public document, and the person auditing you will be reading the questions off it in order. So there is no reason to be surprised by any of them. In this chapter we walk the real questions, in the real order — not to answer them yet, that comes at the very end of the walk-through, but so that you know exactly what is coming and, more usefully, what each question is quietly probing for." },
+  { v:{k:"dia", d:"auditmap", cap:"The seven sections of the audit sheet, and roughly where the marks are."},
+    say:"The sheet has seven sections and they are not equal. Here they are with a rough sense of where the effort goes. Functional, which is the epoll questions, is where most of the real assessment happens and where a shallow understanding shows fastest. Configuration is the largest section by count but the easiest to score, because it is all demonstrations. Methods and cookies, and browser interaction, are straightforward if the server works. Port issues is small but contains the two questions people most often get wrong. Siege and stress is quick if your numbers are good. And general is the bonus section. Notice the shape: the hard marks are concentrated at the very start." },
+  { v:{k:"table", h:"Functional — the eight questions about your event loop", rows:[
+      ["How does an HTTP server work?","Can you explain the whole thing simply? A rambling answer here sets the tone for everything after it."],
+      ["Which function for I/O multiplexing, and how does it work?","Do you know what epoll actually does, or only that you called it?"],
+      ["Only one select (or equivalent) for reads and writes?","Prove it. This is a grep, not an opinion."],
+      ["Why is it important to use only one, and how was it achieved?","The 'why' is the real question. One thread, one blocking point."],
+      ["Only one read or write per client per select?","They will read <code>readable()</code> and <code>writable()</code> and look for a loop."],
+      ["Are the return values for I/O functions checked properly?","They will look for the WouldBlock and Ok(0) cases specifically."],
+      ["If an error is returned, is the client removed?","Where is the cleanup, and does it close the fd?"],
+      ["Is reading and writing ALWAYS done through select?","The word is ALWAYS. Any place that bypasses it counts against you."]]},
+    say:"The first section, and the one that matters most. Eight questions, all about your event loop. Read the right-hand column, because that is what is really being asked. How does an HTTP server work is testing whether you can explain something simply. Which function and how does it work is testing whether you know what epoll does or merely that you called it. Only one select — that is a grep, not an opinion. Why is it important is the real question of the four, because it separates understanding from memorisation. Only one read or write per client — they will open your readable and writable functions and look for a loop. Are return values checked — they will look for the would-block case specifically. If an error is returned is the client removed — where is the cleanup. And is it always done through select, where the operative word is always, in capitals on the sheet." },
+  { v:{k:"table", h:"Configuration file — eight things they will ask you to set up", rows:[
+      ["A single server with a single port","the simplest case, and a warm-up"],
+      ["Multiple servers with different ports","one process, several listening sockets"],
+      ["Multiple servers with different hostnames","tested with <code>curl --resolve test.com:80:127.0.0.1</code>"],
+      ["Custom error pages","and, if they are thorough, what happens when one is missing"],
+      ["Limit the client body","a POST shorter and longer than the limit"],
+      ["Routes, and that they are taken into account","different prefixes reaching different directories"],
+      ["A default file when the path is a directory","the index directive"],
+      ["Accepted methods per route","\"try to DELETE something with and without permission\""]]},
+    say:"The configuration section. Eight setups, and the sheet says at the top: check the configuration file and modify it if necessary — meaning the auditor may edit your config live and expect the server to cope. Notice the third row: they give you the exact curl command, using the resolve flag, which fakes a hostname without touching D-N-S. And the last row gives you the exact test in the sheet's own words: try to delete something with and without permission. When a sheet hands you the command it will use, the correct preparation is to have run that exact command yourself beforehand." },
+  { v:{k:"table", h:"Methods, cookies, and the browser", rows:[
+      ["GET / POST / DELETE working properly","\"For each method be sure to check the status code (200, 404 etc)\""],
+      ["A WRONG request — is the server still working?","two halves: the error answer, AND that it survived"],
+      ["Upload files and get them back","\"to test they were not corrupted\" — so compare the bytes"],
+      ["A working session and cookies system","best shown in a browser, not with curl"],
+      ["The browser connects with no issues","a full static website, rendering properly"],
+      ["Are the request and response headers correct?","compare with nginx in the network panel"],
+      ["A wrong URL / a directory listing / a redirected URL","three separate clicks in the browser"],
+      ["CGI with chunked and unchunked data","both encodings, and ideally why they share one path"]]},
+    say:"Methods, cookies and the browser. Two rows here are worth pausing on. A wrong request, is the server still working properly — that question has two halves, and people demonstrate only the first. Showing the four hundred is not the answer; showing the four hundred and then immediately fetching a page successfully is the answer. And the upload row: the sheet says to test they were not corrupted, which means the demonstration is not that the upload succeeded, it is that the bytes coming back are identical to the bytes that went out. That is a byte comparison, not an eyeball. Also note that the browser questions are best answered in a browser — the sheet explicitly says to open the developer tools panel." },
+  { v:{k:"callout", h:"The two port questions people get wrong",
+      body:"<b>“Configure the same port multiple times. The server should find the error.”</b><br>The sheet explains itself: it is about whether your server <i>identifies misconfigurations</i>. But careful — two servers sharing a port with <i>different</i> <code>server_name</code>s is a virtual host, which is legal and must keep working.<br><br><b>“Configure multiple servers with different configurations but common ports. Ask why the server should work if one of the configurations isn't working.”</b><br>They want the reasoning, not just the demo: an error in one server's configuration must not bring down the others."},
+    say:"And then the port section, which is small but contains the two questions that catch people out. The first: configure the same port multiple times, the server should find the error. And the sheet explains what it means — it is about whether your server identifies misconfigurations. But there is a trap in it, because two servers sharing a port with different server names is a virtual host, which is completely legal and must keep working. So the correct behaviour is not to reject every repeated port; it is to reject the ones that nothing could tell apart. The second question asks you to explain why the server should still work if one of the configurations is broken. Note the word ask — they want your reasoning, not a demonstration. The reasoning is that one typo must not take down every other site the machine is hosting." },
+  { v:{k:"table", h:"Siege and stress — three checks, and one trap", rows:[
+      ["siege -b [IP]:[PORT]","availability must be at least 99.5%"],
+      ["No memory leak","\"you could use some tools like top\" — watch RSS while it runs"],
+      ["No hanging connection","the trap: TIME_WAIT sockets are the client's, and always linger"]]},
+    say:"The stress section is three checks. Siege with the dash b flag, which means no delay between requests, and availability must be at least ninety-nine point five percent. No memory leak, and the sheet suggests top, so watch the resident memory while the load runs. And no hanging connections — which is where the trap lives. If you check for leftover connections by grepping for the port you will see a large number and panic. Those are TIME-WAIT sockets and they belong to the client side of connections that have already closed; every operating system keeps them for a couple of minutes. Filter for established connections instead. Knowing that distinction before you are asked is worth a lot, because it looks like you have actually run this before." },
+  { v:{k:"points", h:"What the audit is really assessing", items:[
+      "<b>Can you explain it?</b> The sheet says, over and over, \"is the student able to justify his choices\". Working code with no explanation scores badly.",
+      "<b>Can you find it?</b> \"Ask the student to show you the implementation in the source code when necessary.\" Know your line numbers.",
+      "<b>Does it hold up when poked?</b> Wrong requests, edited configs, taken ports, slow clients — they will try to break it.",
+      "<b>Are you honest?</b> Saying \"that is not implemented\" or \"here is a limitation, and here is how I would fix it\" scores better than bluffing.",
+      "None of these are about typing. <b>All of them are about understanding</b> — which is the whole point of the next two hours."]},
+    say:"So what is the audit really assessing? Four things. Can you explain it — the sheet asks repeatedly whether the student is able to justify his choices, and working code with no explanation scores badly. Can you find it — the sheet says to ask the student to show the implementation in the source code, so know roughly where things live. Does it hold up when poked — they will send wrong requests, edit your configuration, take your port, and stall mid-request. And are you honest: saying that is not implemented, or here is a limitation and here is how I would fix it, scores better than bluffing, every single time. None of these are about typing speed. All of them are about understanding, which is exactly what the rest of this walk-through is for. Now that you know what is required and what will be asked, let us go and make the thing run." }
 ]},
 
 { t:"Build it and run it", beats:[
@@ -2576,6 +2711,89 @@ D.configs = `<svg viewBox="0 0 820 400">${AR}
 <rect x="240" y="322" width="560" height="62" rx="9" class="dbox"/>
 <text x="256" y="346" class="dtx-s">audit: "configure the same port multiple times" AND "one config isn't working"</text>
 <text x="256" y="368" class="dtx-m" fill="#7ee787">both questions answered by a single run</text>
+</svg>`;
+
+D.reqs = `<svg viewBox="0 0 820 400">${AR}
+<rect x="14" y="26" width="256" height="330" rx="11" class="dbox3"/>
+<text x="142" y="52" class="dtx-h" text-anchor="middle">BOOKKEEPING</text>
+<text x="142" y="72" class="dtx-s" text-anchor="middle">careful work, no hard thinking</text>
+<text x="32" y="102" class="dtx">GET, POST, DELETE</text>
+<text x="32" y="128" class="dtx">the right status code, always</text>
+<text x="32" y="154" class="dtx">error pages 400 403 404</text>
+<text x="32" y="176" class="dtx">405 413 500</text>
+<text x="32" y="202" class="dtx">file uploads</text>
+<text x="32" y="228" class="dtx">cookies and sessions</text>
+<text x="32" y="254" class="dtx">routes, listings, redirects</text>
+<text x="32" y="280" class="dtx">a configuration file</text>
+<text x="32" y="306" class="dtx">CGI by file extension</text>
+<text x="142" y="340" class="dtx-s" text-anchor="middle">most of the line count</text>
+<rect x="282" y="26" width="256" height="330" rx="11" class="dbox2"/>
+<text x="410" y="52" class="dtx-h" text-anchor="middle">NEEDS REAL CARE</text>
+<text x="410" y="72" class="dtx-s" text-anchor="middle">self-contained, but easy to get wrong</text>
+<text x="300" y="102" class="dtx">HTTP/1.1 compatible</text>
+<text x="300" y="128" class="dtx">keep-alive connections</text>
+<text x="300" y="154" class="dtx">chunked AND unchunked</text>
+<text x="300" y="176" class="dtx">request bodies</text>
+<text x="300" y="202" class="dtx">multiple ports at once</text>
+<text x="300" y="228" class="dtx">multiple servers at once</text>
+<text x="300" y="254" class="dtx">virtual hosts by Host:</text>
+<text x="300" y="280" class="dtx">request timeouts</text>
+<text x="300" y="306" class="dtx">never crashes</text>
+<text x="410" y="340" class="dtx-s" text-anchor="middle">where the subtle bugs live</text>
+<rect x="550" y="26" width="256" height="330" rx="11" class="dbox4"/>
+<text x="678" y="52" class="dtx-h" text-anchor="middle" fill="#ff7b72">THE HARD FOUR</text>
+<text x="678" y="72" class="dtx-s" text-anchor="middle">these decide the whole design</text>
+<rect x="566" y="88" width="224" height="52" rx="7" class="dbox"/>
+<text x="678" y="110" class="dtx" text-anchor="middle" fill="#ffcb6b">one process,</text>
+<text x="678" y="130" class="dtx" text-anchor="middle" fill="#ffcb6b">one thread</text>
+<rect x="566" y="150" width="224" height="52" rx="7" class="dbox"/>
+<text x="678" y="172" class="dtx" text-anchor="middle" fill="#ffcb6b">epoll called ONCE per</text>
+<text x="678" y="192" class="dtx" text-anchor="middle" fill="#ffcb6b">client communication</text>
+<rect x="566" y="212" width="224" height="52" rx="7" class="dbox"/>
+<text x="678" y="234" class="dtx" text-anchor="middle" fill="#ffcb6b">ALL reads and writes</text>
+<text x="678" y="254" class="dtx" text-anchor="middle" fill="#ffcb6b">pass through epoll</text>
+<rect x="566" y="274" width="224" height="52" rx="7" class="dbox"/>
+<text x="678" y="296" class="dtx" text-anchor="middle" fill="#ffcb6b">ALL I/O operations</text>
+<text x="678" y="316" class="dtx" text-anchor="middle" fill="#ffcb6b">non-blocking</text>
+<text x="678" y="348" class="dtx-s" text-anchor="middle" fill="#ff7b72">not features — constraints</text>
+</svg>`;
+
+D.auditmap = `<svg viewBox="0 0 820 400">${AR}
+<text x="20" y="24" class="dtx-h">THE SEVEN SECTIONS OF THE AUDIT SHEET</text>
+<rect x="20" y="38" width="440" height="46" rx="8" class="dbox4"/>
+<text x="36" y="58" class="dtx" fill="#ffcb6b">1. Functional — how your event loop works</text>
+<text x="36" y="76" class="dtx-s">8 questions · epoll, one read/write per event, error handling</text>
+<rect x="474" y="38" width="326" height="46" rx="8" class="dbox"/>
+<text x="490" y="66" class="dtx-s" fill="#ff7b72">hardest. Most of the real assessment.</text>
+<rect x="20" y="92" width="440" height="46" rx="8" class="dbox2"/>
+<text x="36" y="112" class="dtx">2. Configuration file</text>
+<text x="36" y="130" class="dtx-s">8 setups · ports, hostnames, error pages, body limit, routes, methods</text>
+<rect x="474" y="92" width="326" height="46" rx="8" class="dbox"/>
+<text x="490" y="120" class="dtx-s" fill="#7ee787">biggest, but all demonstrations — easy marks</text>
+<rect x="20" y="146" width="440" height="46" rx="8" class="dbox2"/>
+<text x="36" y="166" class="dtx">3. Methods and cookies</text>
+<text x="36" y="184" class="dtx-s">6 checks · GET/POST/DELETE, a wrong request, uploads, sessions</text>
+<rect x="474" y="146" width="326" height="46" rx="8" class="dbox"/>
+<text x="490" y="174" class="dtx-s">straightforward if the server works</text>
+<rect x="20" y="200" width="440" height="46" rx="8" class="dbox2"/>
+<text x="36" y="220" class="dtx">4. Interaction with the browser</text>
+<text x="36" y="238" class="dtx-s">6 checks · headers, wrong URL, listing, redirect, CGI chunked</text>
+<rect x="474" y="200" width="326" height="46" rx="8" class="dbox"/>
+<text x="490" y="228" class="dtx-s">open devtools — they ask you to</text>
+<rect x="20" y="254" width="440" height="46" rx="8" class="dbox4"/>
+<text x="36" y="274" class="dtx" fill="#ffcb6b">5. Port issues</text>
+<text x="36" y="292" class="dtx-s">2 questions · the same port twice · one broken config among good ones</text>
+<rect x="474" y="254" width="326" height="46" rx="8" class="dbox"/>
+<text x="490" y="282" class="dtx-s" fill="#ff7b72">small, but most often answered wrongly</text>
+<rect x="20" y="308" width="440" height="46" rx="8" class="dbox2"/>
+<text x="36" y="328" class="dtx">6. Siege and stress</text>
+<text x="36" y="346" class="dtx-s">3 checks · availability ≥ 99.5% · no leak · no hanging connection</text>
+<rect x="474" y="308" width="326" height="46" rx="8" class="dbox"/>
+<text x="490" y="336" class="dtx-s">quick, if your numbers are good</text>
+<rect x="20" y="362" width="440" height="34" rx="8" class="dbox3"/>
+<text x="36" y="384" class="dtx">7. General — the two bonuses</text>
+<rect x="474" y="362" width="326" height="34" rx="8" class="dbox"/>
+<text x="490" y="384" class="dtx-s">only counts once everything above works</text>
 </svg>`;
 
 /* ============================ PLAYER ============================ */
