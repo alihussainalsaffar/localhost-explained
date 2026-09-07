@@ -20,13 +20,16 @@ word spoken is also written on screen, so you can read along with the sound off.
   file. Then the audit questions with the answers.
 - 24 hand-drawn SVG diagrams for the things prose cannot show.
 - Player: play/pause, ±5 s skip, 0.75×–2× speed, voice picker, captions, chapter
-  sidebar, scrubbable timeline. **Your position is saved**, so you can stop on the
-  train and pick it up later.
+  sidebar, scrubbable timeline, and **bookmarks** — press **B** to save the exact spot
+  you are at, as many as you like. They appear at the top of the sidebar with their
+  timestamp and the line being read, and as pins on the timeline. **Your position and
+  your bookmarks are saved**, so you can stop on the train and pick it up later.
 
 | Key | |
 | --- | --- |
 | `Space` | play / pause |
 | `J` `L` | back / forward 5 seconds |
+| `B` | bookmark this exact spot (save as many as you like) |
 | `←` `→` | previous / next slide |
 | `↑` `↓` | previous / next chapter |
 | `C` `S` `F` | captions · sidebar · fullscreen |
