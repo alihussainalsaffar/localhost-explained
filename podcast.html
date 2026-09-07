@@ -1,0 +1,1300 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>localhost — the podcast</title>
+<style>
+:root{
+  --bg:#08080d; --panel:#12121b; --panel2:#1a1a26; --line:#262636;
+  --ink:#f2f0f8; --ink2:#a9a3bd; --ink3:#6b6684;
+  --T:#ffb347;            /* teacher — warm */
+  --S:#5ad1ff;            /* student — cool */
+  --good:#6ee7a8; --bad:#ff6b7a; --pur:#b48ef5;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#2c2c40;border-radius:5px}
+
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:14px;padding:18px}
+
+/* ---------------- the screen ---------------- */
+#screen{position:relative;width:100%;max-width:1180px;aspect-ratio:16/9;
+  background:radial-gradient(120% 100% at 50% 0%,#15151f,#08080d 70%);
+  border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  box-shadow:0 30px 90px -30px #000,0 0 0 1px #ffffff08 inset}
+#scene{position:absolute;inset:0;transition:bottom .3s ease}
+/* when subtitles are on, the scene keeps clear of them — a real safe area */
+#screen.subson #scene{bottom:14%}
+#scene svg{width:100%;height:100%;display:block}
+#vig{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 45%,transparent 55%,#000000aa 100%)}
+#grain{position:absolute;inset:-50%;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='3'/></filter><rect width='120' height='120' filter='url(%23n)'/></svg>");
+  animation:grain 1.1s steps(3) infinite}
+@keyframes grain{0%{transform:translate(0,0)}33%{transform:translate(-2%,1%)}66%{transform:translate(1%,-2%)}100%{transform:translate(0,0)}}
+
+/* segment chip, top-left of the screen */
+#seg{position:absolute;left:18px;top:16px;display:flex;align-items:center;gap:9px;
+  font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);
+  background:#0a0a12cc;border:1px solid var(--line);border-radius:20px;padding:6px 13px;
+  backdrop-filter:blur(6px);z-index:4}
+#seg b{color:var(--ink2);font-weight:600;letter-spacing:.04em}
+#seg i{width:6px;height:6px;border-radius:50%;background:var(--bad);animation:rec 1.6s infinite}
+@keyframes rec{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* subtitles */
+#subs{position:absolute;left:0;right:0;bottom:0;padding:40px 6% 18px;z-index:5;
+  background:linear-gradient(transparent,#05050acc 32%,#05050aee);
+  display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center}
+#subs.off{display:none}
+#who{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;font-weight:700;padding:4px 12px;border-radius:20px;
+  border:1px solid currentColor}
+#who.T{color:var(--T)} #who.S{color:var(--S)}
+#who span{width:6px;height:6px;border-radius:50%;background:currentColor}
+#line{font-size:clamp(15px,2.05vw,23px);line-height:1.4;max-width:52ch;text-wrap:balance;
+  text-shadow:0 2px 14px #000;font-weight:450}
+#line em{font-style:normal;color:var(--T);font-weight:650}
+#line b{color:var(--S);font-weight:650}
+
+/* the two speakers */
+#cast{position:absolute;right:18px;top:14px;display:flex;gap:10px;z-index:4}
+.face{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;
+  background:var(--panel);border:1px solid var(--line);position:relative;
+  transition:transform .3s cubic-bezier(.2,1.3,.4,1),opacity .3s,box-shadow .3s;
+  opacity:.4;transform:scale(.9)}
+.face svg{width:32px;height:32px}
+.face.live{opacity:1;transform:scale(1.06)}
+.face.T.live{box-shadow:0 0 0 2px var(--T),0 0 26px -4px var(--T)}
+.face.S.live{box-shadow:0 0 0 2px var(--S),0 0 26px -4px var(--S)}
+.face .nm{position:absolute;bottom:-17px;left:0;right:0;text-align:center;font-size:9px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.face.T.live .nm{color:var(--T)} .face.S.live .nm{color:var(--S)}
+/* talking bars */
+.bars{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);display:flex;gap:2px;opacity:0}
+.face.live .bars{opacity:1}
+.bars i{width:2px;height:4px;border-radius:1px;background:currentColor;
+  animation:bar .6s ease-in-out infinite}
+.bars i:nth-child(2){animation-delay:.12s} .bars i:nth-child(3){animation-delay:.24s}
+.bars i:nth-child(4){animation-delay:.36s}
+@keyframes bar{0%,100%{height:3px}50%{height:11px}}
+
+/* ---------------- controls ---------------- */
+#bar{width:100%;max-width:1180px;flex:none}
+#track{position:relative;height:6px;background:#20202e;border-radius:3px;cursor:pointer}
+#track:hover{height:8px}
+#fill{position:absolute;inset:0 auto 0 0;width:0;border-radius:3px;
+  background:linear-gradient(90deg,var(--S),var(--T))}
+#segticks{position:absolute;inset:0;pointer-events:none}
+#segticks i{position:absolute;top:0;bottom:0;width:1px;background:#3a3a52}
+#knob{position:absolute;top:50%;left:0;width:14px;height:14px;margin:-7px 0 0 -7px;
+  border-radius:50%;background:#fff;box-shadow:0 0 12px #fff8;transition:transform .12s}
+#track:hover #knob{transform:scale(1.2)}
+#ctrls{display:flex;align-items:center;gap:8px;padding-top:11px}
+.cb{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;color:var(--ink2)}
+.cb:hover{background:var(--panel2);color:var(--ink)}
+.cb svg{width:19px;height:19px;fill:currentColor}
+#play{width:46px;height:46px;border-radius:13px;background:var(--ink);color:#08080d}
+#play:hover{background:#fff}
+#play svg{width:22px;height:22px}
+#tm{font-family:var(--mono);font-size:11.5px;color:var(--ink3);font-variant-numeric:tabular-nums;
+  padding:0 6px;white-space:nowrap}
+.sp{flex:1}
+.pill{padding:7px 11px;border-radius:9px;font-size:11.5px;color:var(--ink2);
+  border:1px solid var(--line)}
+.pill:hover{background:var(--panel2);color:var(--ink)}
+.pill.on{border-color:var(--S);color:var(--S);background:#0d2230}
+select{background:var(--panel2);color:var(--ink2);border:1px solid var(--line);
+  border-radius:9px;padding:6px 8px;font-size:11px;max-width:150px}
+
+/* segments strip */
+#strip{display:flex;gap:7px;overflow-x:auto;padding:11px 0 2px;scrollbar-width:none}
+#strip::-webkit-scrollbar{display:none}
+#strip.off{display:none}
+.sg{flex:none;padding:7px 13px;border-radius:9px;border:1px solid var(--line);
+  font-size:11.5px;color:var(--ink3);white-space:nowrap}
+.sg:hover{color:var(--ink);background:var(--panel2)}
+.sg.on{border-color:var(--T);color:var(--T);background:#241b0d}
+.sg b{font-family:var(--mono);font-size:10px;opacity:.65;margin-right:6px}
+
+/* ---------------- gate ---------------- */
+#gate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px;
+  background:radial-gradient(90% 70% at 50% 30%,#181826,#06060a 75%);overflow-y:auto}
+#gate.hide{display:none}
+.gc{max-width:640px;text-align:center}
+.gtag{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--T);margin-bottom:14px}
+.gc h1{font-size:clamp(30px,6vw,52px);line-height:1.06;letter-spacing:-.035em;margin:0 0 14px;
+  font-weight:700}
+.gc h1 span{background:linear-gradient(90deg,var(--S),var(--T));-webkit-background-clip:text;
+  background-clip:text;color:transparent}
+.gc p{color:var(--ink2);font-size:15.5px;line-height:1.6;margin:0 0 26px}
+.gcast{display:flex;gap:26px;justify-content:center;margin-bottom:28px}
+.gp{display:flex;flex-direction:column;align-items:center;gap:9px}
+.gp .av{width:62px;height:62px;border-radius:17px;display:grid;place-items:center;
+  background:var(--panel);border:1px solid var(--line)}
+.gp.T .av{box-shadow:0 0 0 1px var(--T),0 0 30px -8px var(--T)}
+.gp.S .av{box-shadow:0 0 0 1px var(--S),0 0 30px -8px var(--S)}
+.gp .av svg{width:36px;height:36px}
+.gp b{font-size:12.5px}
+.gp.T b{color:var(--T)} .gp.S b{color:var(--S)}
+.gp i{font-style:normal;font-size:11px;color:var(--ink3)}
+#go{background:var(--ink);color:#08080d;font-weight:700;font-size:16px;padding:14px 36px;
+  border-radius:13px}
+#go:hover{background:#fff}
+.gnote{margin-top:22px;font-size:12px;color:var(--ink3);line-height:1.65}
+
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px);
+  opacity:0;background:#1c1c2a;border:1px solid var(--line);padding:9px 16px;border-radius:10px;
+  font-size:13px;pointer-events:none;transition:.24s;z-index:60}
+#toast.on{opacity:1;transform:translateX(-50%)}
+
+@media (max-width:820px){
+  #app{padding:9px;gap:9px}
+  #screen{border-radius:12px}
+  #seg{left:10px;top:10px;font-size:10px;padding:5px 10px}
+  #cast{right:10px;top:10px;gap:7px}
+  .face{width:40px;height:40px;border-radius:11px}
+  .face svg{width:25px;height:25px}
+  .face .nm{display:none}
+  #subs{padding:44px 5% 14px}
+  #ctrls{flex-wrap:wrap;gap:5px}
+  .sp{flex:1 0 100%;height:0}
+  #tm{margin-left:auto;font-size:10.5px}
+  select{flex:1;max-width:none}
+  .cb{width:40px;height:40px}
+}
+@media (hover:none){#track:hover #knob{transform:none}}
+
+/* ================= animation utilities ================= */
+@keyframes inUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes inDn{from{opacity:0;transform:translateY(-22px)}to{opacity:1;transform:none}}
+@keyframes inL{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
+@keyframes inR{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@keyframes inFade{from{opacity:0}to{opacity:1}}
+@keyframes inPop{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:scale(1)}}
+@keyframes drawIt{to{stroke-dashoffset:0}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.42}}
+@keyframes glow{0%,100%{filter:drop-shadow(0 0 0 currentColor)}50%{filter:drop-shadow(0 0 8px currentColor)}}
+@keyframes spinSlow{to{transform:rotate(360deg)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.055)}}
+@keyframes flash{0%,100%{opacity:0}8%,44%{opacity:1}}
+
+#scene .kb{animation:kenburns 22s ease-out both;transform-origin:50% 45%}
+.u{animation:inUp .55s cubic-bezier(.2,.85,.3,1) both}
+.d{animation:inDn .55s cubic-bezier(.2,.85,.3,1) both}
+.l{animation:inL .55s cubic-bezier(.2,.85,.3,1) both}
+.r{animation:inR .55s cubic-bezier(.2,.85,.3,1) both}
+.f{animation:inFade .7s ease both}
+.p{animation:inPop .5s cubic-bezier(.2,1.35,.4,1) both}
+.dr{stroke-dasharray:var(--L,600);stroke-dashoffset:var(--L,600);
+  animation:drawIt 1.1s cubic-bezier(.4,.5,.2,1) both}
+.pu{animation:pulse 2.1s ease-in-out infinite}
+.gl{animation:glow 2.4s ease-in-out infinite}
+.bo{animation:bob 3.4s ease-in-out infinite}
+.d1{animation-delay:.12s}.d2{animation-delay:.26s}.d3{animation-delay:.4s}
+.d4{animation-delay:.54s}.d5{animation-delay:.68s}.d6{animation-delay:.82s}
+.d7{animation-delay:.96s}.d8{animation-delay:1.1s}.d9{animation-delay:1.26s}
+.d10{animation-delay:1.42s}.d11{animation-delay:1.6s}.d12{animation-delay:1.78s}
+
+/* svg text helpers */
+.t1{fill:var(--ink);font-family:var(--sans);font-size:20px;font-weight:600}
+.t2{fill:var(--ink2);font-family:var(--sans);font-size:15px}
+.t3{fill:var(--ink3);font-family:var(--sans);font-size:12.5px}
+.tm{fill:#9fe6ff;font-family:var(--mono);font-size:14px}
+.tm2{fill:var(--ink3);font-family:var(--mono);font-size:12px}
+.hd{fill:var(--T);font-family:var(--sans);font-size:12.5px;font-weight:700;letter-spacing:.14em}
+.bx{fill:#141420;stroke:#2c2c40}
+.bxa{fill:#0d1b28;stroke:#2b6d92}
+.bxg{fill:#111f18;stroke:#2f6b48}
+.bxr{fill:#241216;stroke:#7a3540}
+.bxy{fill:#241d0f;stroke:#6b5424}
+.ar{stroke:#4a4a66;stroke-width:2;fill:none;marker-end:url(#a1)}
+.arS{stroke:var(--S);stroke-width:2.4;fill:none;marker-end:url(#a2)}
+.arT{stroke:var(--T);stroke-width:2.4;fill:none;marker-end:url(#a3)}
+.arG{stroke:var(--good);stroke-width:2.4;fill:none;marker-end:url(#a4)}
+.arR{stroke:var(--bad);stroke-width:2.4;fill:none;marker-end:url(#a5)}
+</style>
+
+<div id="gate">
+  <div class="gc">
+    <div class="gtag">an animated conversation · 28 minutes</div>
+    <h1>localhost, <span>explained out loud</span></h1>
+    <p>A student sits down with their teacher and asks the questions you would actually
+       ask — what this server really does, and how the code pulls it off. Everything is
+       animated, and both voices are read aloud.</p>
+    <div class="gcast">
+      <div class="gp S"><div class="av">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#5ad1ff" stroke-width="1.7">
+          <circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.9 3.4-6.2 7.5-6.2s7.5 2.3 7.5 6.2"/></svg>
+        </div><b>THE STUDENT</b><i>asks the awkward ones</i></div>
+      <div class="gp T"><div class="av">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ffb347" stroke-width="1.7">
+          <circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.9 3.4-6.2 7.5-6.2s7.5 2.3 7.5 6.2"/>
+          <path d="M6 5.4C7.6 3.6 9.6 3 12 3s4.4.6 6 2.4"/></svg>
+        </div><b>THE TEACHER</b><i>answers them properly</i></div>
+    </div>
+    <button id="go">▶ Play the episode</button>
+    <div><button id="resume" hidden style="margin-top:14px;font-size:13px;color:var(--good);text-decoration:underline"></button></div>
+    <p class="gnote">Two different voices are used for the two speakers, so you can follow who is
+      talking with your eyes closed. Every line is also on screen as subtitles.<br>
+      <b style="color:var(--ink2)">Space</b> play/pause · <b style="color:var(--ink2)">← →</b> skip 10s ·
+      <b style="color:var(--ink2)">C</b> subtitles · <b style="color:var(--ink2)">F</b> fullscreen<br>
+      <span style="color:var(--T)">On a phone: turn it sideways, or tap ⛶ — the animations deserve the width.</span></p>
+  </div>
+</div>
+
+<div id="app">
+  <div id="screen">
+    <div id="scene"></div>
+    <div id="grain"></div>
+    <div id="vig"></div>
+    <div id="seg"><i></i><b id="segname">—</b></div>
+    <div id="cast">
+      <div class="face S" id="fS">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#5ad1ff" stroke-width="1.7">
+          <circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.9 3.4-6.2 7.5-6.2s7.5 2.3 7.5 6.2"/></svg>
+        <div class="bars" style="color:#5ad1ff"><i></i><i></i><i></i><i></i></div>
+        <div class="nm">student</div>
+      </div>
+      <div class="face T" id="fT">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ffb347" stroke-width="1.7">
+          <circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.9 3.4-6.2 7.5-6.2s7.5 2.3 7.5 6.2"/>
+          <path d="M6 5.4C7.6 3.6 9.6 3 12 3s4.4.6 6 2.4"/></svg>
+        <div class="bars" style="color:#ffb347"><i></i><i></i><i></i><i></i></div>
+        <div class="nm">teacher</div>
+      </div>
+    </div>
+    <div id="subs"><div id="who" class="T"><span></span><em id="whoname">TEACHER</em></div>
+      <div id="line"></div></div>
+  </div>
+
+  <div id="bar">
+    <div id="track"><div id="fill"></div><div id="segticks"></div><div id="knob"></div></div>
+    <div id="ctrls">
+      <button class="cb" id="b10" title="Back 10s (←)">
+        <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/>
+        <text x="12" y="16.4" text-anchor="middle" font-size="8" font-weight="700" fill="currentColor" font-family="system-ui">10</text></svg></button>
+      <button id="play" title="Play / pause (Space)">
+        <svg id="ip" viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg>
+        <svg id="ia" viewBox="0 0 24 24" hidden><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg></button>
+      <button class="cb" id="f10" title="Forward 10s (→)">
+        <svg viewBox="0 0 24 24"><g transform="translate(24,0) scale(-1,1)"><path d="M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></g>
+        <text x="12" y="16.4" text-anchor="middle" font-size="8" font-weight="700" fill="currentColor" font-family="system-ui">10</text></svg></button>
+      <span id="tm">00:00 / 00:00</span>
+      <span class="sp"></span>
+      <button class="pill" id="bseg">Segments</button>
+      <button class="pill" id="brate">1.0×</button>
+      <button class="pill on" id="bcc">CC</button>
+      <button class="pill on" id="btts">🔊</button>
+      <select id="vT" title="Teacher voice"></select>
+      <select id="vS" title="Student voice"></select>
+      <button class="cb" id="bfs" title="Fullscreen (F)">
+        <svg viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4zm11-5h5v5h-2V6h-3V4zM4 15h2v3h3v2H4v-5zm14 3v-3h2v5h-5v-2h3z"/></svg></button>
+    </div>
+    <div id="strip" class="off"></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+/* ============================ SCENES ============================
+   Each scene is a 960x540 SVG. Re-inserting it restarts every CSS
+   animation inside it, which is what gives each cut its own motion. */
+const DEFS = `<defs>
+<marker id="a1" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6z" fill="#4a4a66"/></marker>
+<marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6z" fill="#5ad1ff"/></marker>
+<marker id="a3" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6z" fill="#ffb347"/></marker>
+<marker id="a4" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6z" fill="#6ee7a8"/></marker>
+<marker id="a5" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6z" fill="#ff6b7a"/></marker>
+<linearGradient id="gST" x1="0" y1="0" x2="1" y2="0">
+  <stop offset="0" stop-color="#5ad1ff"/><stop offset="1" stop-color="#ffb347"/></linearGradient>
+</defs>`;
+const SVG = inner => `<svg viewBox="0 0 960 540">${DEFS}${inner}</svg>`;
+const SCENES = {};
+
+/* ---- title / act cards ---------------------------------------- */
+SCENES.title = () => SVG(`
+<g class="kb">
+<circle cx="480" cy="250" r="200" fill="none" stroke="#1c1c2a" class="f"/>
+<circle cx="480" cy="250" r="150" fill="none" stroke="#1c1c2a" class="f d1"/>
+<text x="480" y="200" text-anchor="middle" class="hd f" style="font-size:14px">THE LOCALHOST PODCAST</text>
+<text x="480" y="272" text-anchor="middle" class="u d1" fill="url(#gST)"
+  style="font-family:var(--sans);font-size:62px;font-weight:800;letter-spacing:-.03em">localhost</text>
+<text x="480" y="316" text-anchor="middle" class="t2 u d2">one process · one thread · one epoll</text>
+<line x1="380" y1="344" x2="580" y2="344" stroke="#2c2c40" class="dr d3" style="--L:200"/>
+<text x="480" y="382" text-anchor="middle" class="t3 u d4">a student and a teacher, in about half an hour</text>
+</g>`);
+
+SCENES.card = (t, s) => SVG(`
+<rect x="0" y="0" width="960" height="540" fill="#08080d"/>
+<line x1="120" y1="248" x2="840" y2="248" stroke="#2c2c40" class="dr" style="--L:720"/>
+<text x="480" y="228" text-anchor="middle" class="hd d1 u" style="font-size:13px">${t}</text>
+<text x="480" y="306" text-anchor="middle" class="u d2" fill="#f2f0f8"
+  style="font-family:var(--sans);font-size:38px;font-weight:700;letter-spacing:-.02em">${s}</text>`);
+
+/* ---- 1. the exchange: browser <-> server ---------------------- */
+SCENES.exchange = () => SVG(`
+<style>
+@keyframes flyR{0%{transform:translateX(0);opacity:0}8%{opacity:1}
+  46%{transform:translateX(430px);opacity:1}54%{opacity:0}100%{transform:translateX(430px);opacity:0}}
+@keyframes flyL{0%,50%{transform:translateX(430px);opacity:0}58%{opacity:1}
+  96%{transform:translateX(0);opacity:1}100%{opacity:0}}
+.pk{animation:flyR 3.4s ease-in-out infinite}
+.pk2{animation:flyL 3.4s ease-in-out infinite}
+@keyframes think{0%,42%{opacity:.25}50%,66%{opacity:1}100%{opacity:.25}}
+.thk{animation:think 3.4s ease-in-out infinite}
+</style>
+<text x="480" y="58" text-anchor="middle" class="hd f">ONE REQUEST, ONE RESPONSE</text>
+<rect x="70" y="150" width="200" height="180" rx="14" class="bx u"/>
+<text x="170" y="182" text-anchor="middle" class="t1 u d1">Browser</text>
+<text x="170" y="208" text-anchor="middle" class="t3 u d1">the client</text>
+<rect x="92" y="228" width="156" height="76" rx="8" fill="#0d1b28" stroke="#2b6d92" class="p d2"/>
+<text x="170" y="254" text-anchor="middle" class="tm2">http://127.0.0.1</text>
+<text x="170" y="276" text-anchor="middle" class="tm2">:8080/</text>
+<rect x="690" y="150" width="200" height="180" rx="14" class="bx u d1"/>
+<text x="790" y="182" text-anchor="middle" class="t1 u d2">Your server</text>
+<text x="790" y="208" text-anchor="middle" class="t3 u d2">one thread</text>
+<circle cx="790" cy="268" r="30" fill="#241d0f" stroke="#6b5424" class="p d3"/>
+<text x="790" y="275" text-anchor="middle" class="thk" fill="#ffb347"
+  style="font-family:var(--mono);font-size:15px">epoll</text>
+<line x1="278" y1="222" x2="682" y2="222" stroke="#22222f" stroke-width="2" class="f d3"/>
+<line x1="278" y1="262" x2="682" y2="262" stroke="#22222f" stroke-width="2" class="f d3"/>
+<g class="pk"><rect x="286" y="208" width="112" height="28" rx="6" fill="#0d1b28" stroke="#5ad1ff"/>
+  <text x="342" y="227" text-anchor="middle" fill="#5ad1ff" style="font-family:var(--mono);font-size:12px">GET /</text></g>
+<g class="pk2"><rect x="286" y="248" width="112" height="28" rx="6" fill="#241d0f" stroke="#ffb347"/>
+  <text x="342" y="267" text-anchor="middle" fill="#ffb347" style="font-family:var(--mono);font-size:12px">200 OK</text></g>
+<text x="480" y="196" text-anchor="middle" class="t3 f d5">a question</text>
+<text x="480" y="300" text-anchor="middle" class="t3 f d5">an answer</text>
+<text x="480" y="392" text-anchor="middle" class="t2 u d6">That is the entire job. Everything else is detail.</text>`);
+
+/* ---- 2. HTTP is just text ------------------------------------- */
+SCENES.httptext = () => SVG(`
+<style>
+@keyframes typ{from{width:0}to{width:100%}}
+.tw{overflow:hidden;white-space:nowrap;display:block;animation:typ .9s steps(34) both}
+</style>
+<text x="480" y="56" text-anchor="middle" class="hd f">IT IS ALL JUST TEXT</text>
+<rect x="120" y="92" width="720" height="212" rx="12" class="bx u"/>
+<foreignObject x="146" y="112" width="680" height="180">
+  <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:var(--mono);font-size:15px;line-height:1.75;color:#a9a3bd">
+    <span class="tw" style="color:#ff8ad8">GET <span style="color:#6ee7a8">/index.html</span> <span style="color:#ffb347">HTTP/1.1</span></span>
+    <span class="tw d1">Host: localhost:8080</span>
+    <span class="tw d2">Connection: keep-alive</span>
+    <span class="tw d3" style="color:#ff6b7a">&#8629;   &#8592; one empty line: "headers are done"</span>
+  </div>
+</foreignObject>
+<g class="u d6">
+<rect x="120" y="336" width="342" height="128" rx="12" class="bxg"/>
+<text x="291" y="368" text-anchor="middle" class="hd" style="fill:#6ee7a8;font-size:12px">THE THREE RULES</text>
+<text x="146" y="398" class="t3">1. every line ends with CR LF</text>
+<text x="146" y="424" class="t3">2. a blank line ends the headers</text>
+<text x="146" y="450" class="t3">3. Content-Length sizes the body</text>
+</g>
+<g class="u d8">
+<rect x="498" y="336" width="342" height="128" rx="12" class="bxa"/>
+<text x="669" y="368" text-anchor="middle" class="hd" style="fill:#5ad1ff;font-size:12px">SO YOU CAN TYPE IT BY HAND</text>
+<text x="524" y="400" class="tm2">printf 'GET / HTTP/1.1\\r\\n\\r\\n'</text>
+<text x="524" y="424" class="tm2">  | nc 127.0.0.1 8080</text>
+<text x="524" y="452" class="t3" style="fill:#6ee7a8">→ a real 200 OK comes back</text>
+</g>`);
+
+/* ---- 3. the blocking problem ---------------------------------- */
+SCENES.blocking = () => SVG(`
+<style>
+@keyframes freeze{0%,18%{fill:#111f18;stroke:#2f6b48}38%,100%{fill:#241216;stroke:#7a3540}}
+@keyframes frzTx{0%,18%{fill:#6ee7a8}38%,100%{fill:#ff6b7a}}
+@keyframes zzz{0%,20%{opacity:0}45%,100%{opacity:1}}
+.fz{animation:freeze 3.2s ease-in-out infinite}
+.fzt{animation:frzTx 3.2s ease-in-out infinite}
+.zz{animation:zzz 3.2s ease-in-out infinite}
+@keyframes serve{0%,100%{opacity:.3}
+  12%,20%{opacity:1}}
+.s1{animation:serve 2.4s infinite}.s2{animation:serve 2.4s infinite .3s}
+.s3{animation:serve 2.4s infinite .6s}.s4{animation:serve 2.4s infinite .9s}
+.s5{animation:serve 2.4s infinite 1.2s}.s6{animation:serve 2.4s infinite 1.5s}
+</style>
+<text x="252" y="52" text-anchor="middle" class="hd d" style="fill:#ff6b7a">THE OBVIOUS WAY</text>
+<rect x="40" y="72" width="424" height="330" rx="14" class="bxr u"/>
+${[0,1,2].map((i)=>`
+<rect x="${72+i*128}" y="118" width="104" height="150" rx="10" class="fz" style="animation-delay:${i*.25}s"/>
+<text x="${124+i*128}" y="152" text-anchor="middle" class="t3">thread ${i+1}</text>
+<text x="${124+i*128}" y="200" text-anchor="middle" class="fzt" style="font-family:var(--mono);font-size:13px;animation-delay:${i*.25}s">read()</text>
+<text x="${124+i*128}" y="238" text-anchor="middle" class="zz" style="font-family:var(--sans);font-size:19px;fill:#ff6b7a;animation-delay:${i*.25}s">z z z</text>`).join('')}
+<text x="252" y="308" text-anchor="middle" class="t2 u d3">each one frozen inside read()</text>
+<text x="252" y="340" text-anchor="middle" class="t3 u d4" style="fill:#ff6b7a">10 000 clients → 10 000 threads</text>
+<text x="252" y="366" text-anchor="middle" class="t3 u d4" style="fill:#ff6b7a">and the subject forbids it anyway</text>
+<text x="722" y="52" text-anchor="middle" class="hd d" style="fill:#6ee7a8">WHAT WE DO INSTEAD</text>
+<rect x="496" y="72" width="424" height="330" rx="14" class="bxg u d1"/>
+<rect x="628" y="112" width="160" height="54" rx="10" fill="#241d0f" stroke="#6b5424" class="p d3"/>
+<text x="708" y="145" text-anchor="middle" fill="#ffb347" style="font-family:var(--mono);font-size:15px">epoll_wait()</text>
+<text x="708" y="188" text-anchor="middle" class="t3 f d4">the one place we ever sleep</text>
+${[0,1,2,3,4,5].map((i)=>`
+<rect x="${528+i*62}" y="228" width="52" height="34" rx="7" class="bx s${i+1}"/>
+<text x="${554+i*62}" y="250" text-anchor="middle" class="tm2 s${i+1}">fd ${7+i}</text>
+<line x1="${554+i*62}" y1="224" x2="708" y2="172" stroke="#2f6b48" stroke-width="1.4" class="s${i+1}"/>`).join('')}
+<text x="708" y="308" text-anchor="middle" class="t2 u d6">one thread, thousands of sockets</text>
+<text x="708" y="352" text-anchor="middle" class="t3 u d7" style="fill:#6ee7a8">nobody waits for anybody else</text>
+<text x="480" y="466" text-anchor="middle" class="t1 u d9">read() on an empty socket parks the whole thread.</text>
+<text x="480" y="500" text-anchor="middle" class="t2 u d10">With one thread, that is fatal — so we never let it happen.</text>`);
+
+/* ---- 4. epoll: register, wait, get back only the ready -------- */
+SCENES.epoll = () => SVG(`
+<style>
+@keyframes intoBox{0%{transform:translateX(0);opacity:1}
+  40%,100%{transform:translateX(232px);opacity:.15}}
+@keyframes outBox{0%,52%{transform:translateX(0);opacity:0}
+  62%{opacity:1}100%{transform:translateX(238px);opacity:1}}
+.ib{animation:intoBox 3.6s ease-in-out infinite}
+.ob{animation:outBox 3.6s ease-in-out infinite}
+@keyframes ring{0%{r:34;opacity:.9}100%{r:64;opacity:0}}
+.rg{animation:ring 2.2s ease-out infinite}
+</style>
+<text x="480" y="50" text-anchor="middle" class="hd f">REGISTER ONCE · ASK ONCE · GET BACK ONLY WHAT IS READY</text>
+<text x="148" y="106" text-anchor="middle" class="t3 d">1 · you register</text>
+${[0,1,2,3].map(i=>`
+<g class="ib" style="animation-delay:${i*.18}s">
+<rect x="60" y="${132+i*54}" width="176" height="40" rx="8" class="bxa"/>
+<text x="148" y="${157+i*54}" text-anchor="middle" class="tm2">fd ${4+i} → token ${i}</text></g>`).join('')}
+<rect x="352" y="128" width="256" height="230" rx="14" class="bxy u d2"/>
+<text x="480" y="160" text-anchor="middle" class="hd" style="fill:#ffb347">THE KERNEL</text>
+<text x="480" y="186" text-anchor="middle" class="t3">holds your list and watches</text>
+<text x="480" y="208" text-anchor="middle" class="t3">every one of them for you</text>
+<circle cx="480" cy="276" r="34" fill="#241d0f" stroke="#ffb347" class="p d4"/>
+<circle cx="480" cy="276" r="34" fill="none" stroke="#ffb347" class="rg"/>
+<text x="480" y="282" text-anchor="middle" fill="#ffb347" style="font-family:var(--mono);font-size:13px">wait</text>
+<text x="480" y="340" text-anchor="middle" class="t3">sleeps until something happens</text>
+<text x="812" y="106" text-anchor="middle" class="t3 d d1">2 · only the ready come back</text>
+<g class="ob"><rect x="676" y="150" width="212" height="42" rx="8" class="bxg"/>
+<text x="782" y="177" text-anchor="middle" class="tm" style="fill:#6ee7a8">token 2 · EPOLLIN</text></g>
+<g class="ob" style="animation-delay:.25s"><rect x="676" y="204" width="212" height="42" rx="8" class="bxg"/>
+<text x="782" y="231" text-anchor="middle" class="tm" style="fill:#6ee7a8">token 0 · EPOLLIN</text></g>
+<text x="782" y="300" text-anchor="middle" class="t3 f d8">now read() cannot block —</text>
+<text x="782" y="324" text-anchor="middle" class="t3 f d8">the data is already there</text>
+<rect x="120" y="404" width="720" height="76" rx="12" class="bx u d9"/>
+<text x="480" y="434" text-anchor="middle" class="t2">The token is any number <tspan fill="#ffb347">you</tspan> choose. The kernel hands it straight back,</text>
+<text x="480" y="460" text-anchor="middle" class="t2">which is how you know instantly whose event this is.</text>`);
+
+/* ---- 5. the event loop ---------------------------------------- */
+SCENES.loop = () => SVG(`
+<style>
+@keyframes orbit{to{transform:rotate(360deg)}}
+@keyframes lit{0%,100%{opacity:.32}12%{opacity:1}}
+.orb{transform-origin:480px 268px;animation:orbit 6s linear infinite}
+.n1{animation:lit 6s linear infinite}.n2{animation:lit 6s linear infinite 1.5s}
+.n3{animation:lit 6s linear infinite 3s}.n4{animation:lit 6s linear infinite 4.5s}
+</style>
+<text x="480" y="46" text-anchor="middle" class="hd f">THE LOOP — EVERYTHING HAPPENS IN HERE</text>
+<circle cx="480" cy="268" r="150" fill="none" stroke="#22222f" stroke-width="2" class="f"/>
+<g class="orb"><circle cx="480" cy="118" r="9" fill="#5ad1ff"/>
+  <circle cx="480" cy="118" r="16" fill="#5ad1ff" opacity=".22"/></g>
+<g class="n1"><rect x="368" y="86" width="224" height="60" rx="12" class="bxy"/>
+<text x="480" y="112" text-anchor="middle" class="tm" style="fill:#ffb347">epoll_wait(1000ms)</text>
+<text x="480" y="132" text-anchor="middle" class="t3">sleep until something is ready</text></g>
+<g class="n2"><rect x="654" y="238" width="236" height="60" rx="12" class="bx"/>
+<text x="772" y="264" text-anchor="middle" class="t2">for each ready event</text>
+<text x="772" y="284" text-anchor="middle" class="t3">listener? accept. client? find it.</text></g>
+<g class="n3"><rect x="368" y="390" width="224" height="60" rx="12" class="bxg"/>
+<text x="480" y="416" text-anchor="middle" class="t2" style="fill:#6ee7a8">ONE read or ONE write</text>
+<text x="480" y="436" text-anchor="middle" class="t3">error → drop the connection</text></g>
+<g class="n4"><rect x="70" y="238" width="236" height="60" rx="12" class="bxr"/>
+<text x="188" y="264" text-anchor="middle" class="t2" style="fill:#ff6b7a">timeout sweep</text>
+<text x="188" y="284" text-anchor="middle" class="t3">idle 15s → close · half a request → 408</text></g>
+<path d="M600 128 Q690 160 726 232" class="ar f d4"/>
+<path d="M760 302 Q660 372 600 392" class="ar f d5"/>
+<path d="M362 404 Q250 372 208 302" class="ar f d6"/>
+<path d="M182 232 Q220 160 360 124" class="arG f d7"/>
+<text x="480" y="512" text-anchor="middle" class="t3 u d8">and around again, forever</text>`);
+
+/* ---- 6. one read per event ------------------------------------ */
+SCENES.oneread = () => SVG(`
+<style>
+@keyframes grow{from{width:0}to{width:var(--w)}}
+.gw{animation:grow .7s cubic-bezier(.3,.8,.3,1) both}
+</style>
+<text x="480" y="50" text-anchor="middle" class="hd f">ONE read() PER EVENT — NEVER A LOOP</text>
+${[
+ {y:96, ev:'EPOLLIN #1', got:'300 bytes', w:150, verdict:'NeedMoreHeaders', c:'#ffb347', bx:'bxy', d:1},
+ {y:200, ev:'EPOLLIN #2', got:'+900 bytes', w:330, verdict:'NeedMoreBody', c:'#ffb347', bx:'bxy', d:4},
+ {y:304, ev:'EPOLLIN #3', got:'+the rest', w:520, verdict:'Complete', c:'#6ee7a8', bx:'bxg', d:7}
+].map(r=>`
+<g class="u d${r.d}">
+<rect x="60" y="${r.y}" width="150" height="66" rx="10" class="bxa"/>
+<text x="135" y="${r.y+28}" text-anchor="middle" class="tm" style="font-size:12px">${r.ev}</text>
+<text x="135" y="${r.y+50}" text-anchor="middle" class="t3">${r.got}</text>
+<rect x="236" y="${r.y+16}" width="540" height="34" rx="7" fill="#101018" stroke="#22222f"/>
+<rect x="236" y="${r.y+16}" height="34" rx="7" fill="#0d1b28" stroke="#2b6d92"
+  class="gw d${r.d+1}" style="--w:${r.w}px"/>
+<text x="248" y="${r.y+38}" class="tm2">read_buffer</text>
+<rect x="800" y="${r.y+12}" width="150" height="42" rx="9" class="${r.bx} p d${r.d+2}"/>
+<text x="875" y="${r.y+38}" text-anchor="middle" style="font-family:var(--mono);font-size:11.5px;fill:${r.c}">${r.verdict}</text>
+</g>`).join('')}
+<rect x="60" y="404" width="890" height="82" rx="12" class="bx u d10"/>
+<text x="480" y="436" text-anchor="middle" class="t2">The parser is a pure function of the buffer. Call it again when more arrives.</text>
+<text x="480" y="464" text-anchor="middle" class="t3">Between these three events the server served everybody else.</text>`);
+
+/* ---- 7. the two phases ---------------------------------------- */
+SCENES.phases = () => SVG(`
+<style>
+@keyframes tok{0%,8%{transform:translate(0,0)}
+ 42%,58%{transform:translate(430px,0)}92%,100%{transform:translate(0,0)}}
+.tk{animation:tok 5s cubic-bezier(.6,0,.4,1) infinite}
+@keyframes hi1{0%,10%,92%,100%{stroke:#5ad1ff;stroke-width:2.5}44%,58%{stroke:#2c2c40;stroke-width:1.5}}
+@keyframes hi2{0%,10%,92%,100%{stroke:#2c2c40;stroke-width:1.5}44%,58%{stroke:#6ee7a8;stroke-width:2.5}}
+.h1{animation:hi1 5s infinite}.h2{animation:hi2 5s infinite}
+</style>
+<text x="480" y="52" text-anchor="middle" class="hd f">A CONNECTION IS ONLY EVER DOING ONE OF TWO THINGS</text>
+<rect x="72" y="150" width="300" height="130" rx="14" fill="#0d1b28" class="h1 u"/>
+<text x="222" y="192" text-anchor="middle" class="t1 u d1" style="fill:#5ad1ff">READING</text>
+<text x="222" y="222" text-anchor="middle" class="tm2 u d1">epoll interest: EPOLLIN</text>
+<text x="222" y="252" text-anchor="middle" class="t3 u d1">collecting request bytes</text>
+<rect x="588" y="150" width="300" height="130" rx="14" fill="#111f18" class="h2 u d1"/>
+<text x="738" y="192" text-anchor="middle" class="t1 u d2" style="fill:#6ee7a8">WRITING</text>
+<text x="738" y="222" text-anchor="middle" class="tm2 u d2">epoll interest: EPOLLOUT</text>
+<text x="738" y="252" text-anchor="middle" class="t3 u d2">flushing the response</text>
+<g class="tk"><circle cx="392" cy="130" r="9" fill="#fff"/></g>
+<path d="M380 128 L580 128" class="ar f d3"/>
+<text x="480" y="116" text-anchor="middle" class="t3 f d3">a whole request arrived → respond()</text>
+<path d="M580 302 L380 302" class="arG f d4"/>
+<text x="480" y="326" text-anchor="middle" class="t3 f d4">response fully sent + keep-alive → back to EPOLLIN</text>
+<rect x="260" y="392" width="440" height="104" rx="12" class="bx u d6"/>
+<text x="480" y="424" text-anchor="middle" class="t2">respond() does <tspan fill="#ff6b7a">not</tspan> write anything.</text>
+<text x="480" y="452" text-anchor="middle" class="t3">It fills a buffer and asks epoll to tell us when the socket is writable.</text>
+<text x="480" y="478" text-anchor="middle" class="t3" style="fill:#6ee7a8">That is how "all writes go through epoll" is actually true.</text>`);
+
+/* ---- 8. partial write ----------------------------------------- */
+SCENES.partial = () => SVG(`
+<style>
+@keyframes chunk{0%{width:0}18%{width:150px}20%,38%{width:150px}
+ 44%{width:330px}46%,64%{width:330px}70%{width:520px}72%,90%{width:520px}
+ 96%,100%{width:700px}}
+.ck{animation:chunk 6s steps(1,end) infinite;animation-timing-function:cubic-bezier(.3,.8,.3,1)}
+@keyframes other{0%,14%{opacity:.15}22%,30%{opacity:1}38%,100%{opacity:.15}}
+.o1{animation:other 6s infinite}.o2{animation:other 6s infinite 1.5s}
+.o3{animation:other 6s infinite 3s}.o4{animation:other 6s infinite 4.5s}
+</style>
+<text x="480" y="50" text-anchor="middle" class="hd f">A BIG RESPONSE GOES OUT IN PIECES</text>
+<text x="70" y="106" class="t3 d">write_buffer — a 2 MB file</text>
+<rect x="70" y="120" width="700" height="46" rx="9" fill="#101018" stroke="#22222f" class="u"/>
+<rect x="70" y="120" height="46" rx="9" fill="#111f18" stroke="#2f6b48" class="ck"/>
+<text x="790" y="150" class="t3 u d1">written →</text>
+<text x="480" y="212" text-anchor="middle" class="t2 u d2">Each EPOLLOUT sends whatever fits, then <tspan fill="#ffb347">returns to the loop</tspan>.</text>
+<text x="480" y="266" text-anchor="middle" class="t3 u d3">and in the gaps between those writes:</text>
+${[0,1,2,3].map(i=>`
+<g class="o${i+1}"><rect x="${132+i*180}" y="296" width="152" height="58" rx="10" class="bxa"/>
+<text x="${208+i*180}" y="320" text-anchor="middle" class="tm2">client ${i+2}</text>
+<text x="${208+i*180}" y="342" text-anchor="middle" class="t3" style="fill:#6ee7a8">served</text></g>`).join('')}
+<rect x="150" y="396" width="660" height="94" rx="12" class="bxr u d6"/>
+<text x="480" y="428" text-anchor="middle" class="t2" style="fill:#ff6b7a">If we looped until the whole 2 MB was gone…</text>
+<text x="480" y="458" text-anchor="middle" class="t3">every other client would wait for the slowest download.</text>
+<text x="480" y="480" text-anchor="middle" class="t3" style="fill:#6ee7a8">One write per event is what stops that.</text>`);
+/* ---- 9. the six files ----------------------------------------- */
+SCENES.files = () => SVG(`
+<style>@keyframes flow{0%{opacity:0;transform:translateX(-14px)}30%,70%{opacity:1;transform:none}
+100%{opacity:0;transform:translateX(14px)}}
+.fl{animation:flow 2.6s ease-in-out infinite}</style>
+<text x="480" y="50" text-anchor="middle" class="hd f">SIX FILES, AND THE DATA RUNS LEFT TO RIGHT</text>
+${[
+ {x:36,  n:'main.rs',     s:'read the config,',   s2:'start the loop',      c:'bx',  d:0},
+ {x:190, n:'config.rs',   s:'text → structs',     s2:'servers and routes',  c:'bx',  d:1},
+ {x:344, n:'server.rs',   s:'THE EVENT LOOP',     s2:'accept·read·write',   c:'bxy', d:2},
+ {x:498, n:'http.rs',     s:'bytes ⇄ Request',    s2:'and Response',        c:'bx',  d:3},
+ {x:652, n:'handlers.rs', s:'decide the answer',  s2:'files·uploads·errors',c:'bx',  d:4},
+ {x:806, n:'cgi.rs',      s:'run a program',      s2:'and read what it prints',c:'bx',d:5}
+].map(f=>`
+<g class="u d${f.d}">
+<rect x="${f.x}" y="150" width="132" height="120" rx="12" class="${f.c}"/>
+<text x="${f.x+66}" y="188" text-anchor="middle" class="tm" style="font-size:13px;fill:${f.c==='bxy'?'#ffb347':'#9fe6ff'}">${f.n}</text>
+<text x="${f.x+66}" y="220" text-anchor="middle" class="t3" style="font-size:11px">${f.s}</text>
+<text x="${f.x+66}" y="240" text-anchor="middle" class="t3" style="font-size:11px">${f.s2}</text>
+</g>`).join('')}
+${[0,1,2,3,4].map(i=>`<g class="fl" style="animation-delay:${i*.2}s">
+<path d="M${172+i*154} 210 L${186+i*154} 210" class="arS"/></g>`).join('')}
+<path d="M410 282 Q480 350 872 350 L872 278" class="arT f d7" stroke-dasharray="5 5"/>
+<text x="620" y="374" text-anchor="middle" class="t3 f d8">the Response travels back the same way</text>
+<rect x="150" y="410" width="660" height="76" rx="12" class="bx u d9"/>
+<text x="480" y="442" text-anchor="middle" class="t2">Config text becomes structs. Socket bytes become a Request.</text>
+<text x="480" y="468" text-anchor="middle" class="t2">A handler makes a Response. The loop writes it back.</text>`);
+
+/* ---- 10. routing ----------------------------------------------- */
+SCENES.routes = () => SVG(`
+<style>
+@keyframes drop{0%{transform:translateY(-30px);opacity:0}12%{transform:none;opacity:1}
+ 100%{transform:none;opacity:1}}
+@keyframes win{0%,32%{fill:#141420;stroke:#2c2c40}44%,100%{fill:#111f18;stroke:#6ee7a8}}
+@keyframes lose{0%,32%{opacity:1}44%,100%{opacity:.28}}
+.dp{animation:drop 1s ease-out both}
+.wn{animation:win 3s ease-in-out infinite}
+.ls{animation:lose 3s ease-in-out infinite}
+</style>
+<text x="480" y="48" text-anchor="middle" class="hd f">LONGEST MATCHING PREFIX WINS</text>
+<rect x="290" y="80" width="380" height="46" rx="10" class="bxa dp"/>
+<text x="480" y="110" text-anchor="middle" class="tm">GET /files/notes/todo.txt</text>
+<path d="M480 132 L480 158" class="arS f d2"/>
+${[
+ {y:170, p:'route /',              r:'root www/site',   cls:'ls', note:'matches — but shorter'},
+ {y:236, p:'route /files',         r:'root www/files',  cls:'wn', note:'matches, and longest → WINS'},
+ {y:302, p:'route /filesystem',    r:'root www/other',  cls:'ls', note:'starts the same, but the next byte is not "/"'},
+ {y:368, p:'route /cgi',           r:'root www/cgi',    cls:'ls', note:'does not match'}
+].map((r,i)=>`
+<g class="u d${i+3}">
+<rect x="150" y="${r.y}" width="300" height="52" rx="10" class="bx ${r.cls}"/>
+<text x="172" y="${r.y+32}" class="tm2" style="font-size:13px">${r.p}</text>
+<rect x="470" y="${r.y}" width="180" height="52" rx="10" class="bx ${r.cls}"/>
+<text x="560" y="${r.y+32}" text-anchor="middle" class="t3">${r.r}</text>
+<text x="672" y="${r.y+32}" class="t3" style="font-size:11.5px">${r.note}</text>
+</g>`).join('')}
+<rect x="150" y="440" width="660" height="66" rx="12" class="bxy u d8"/>
+<text x="480" y="468" text-anchor="middle" class="t3">The trap: "/filesystem".starts_with("/files") is <tspan fill="#ff6b7a">true</tspan>.</text>
+<text x="480" y="492" text-anchor="middle" class="tm2" style="fill:#ffb347">so we also require the next byte to be a slash</text>`);
+
+/* ---- 11. upload round trip ------------------------------------- */
+SCENES.upload = () => SVG(`
+<style>
+@keyframes up1{0%{transform:translate(0,0);opacity:0}6%{opacity:1}
+ 30%{transform:translate(300px,0);opacity:1}36%{opacity:0}100%{opacity:0}}
+@keyframes dn1{0%,46%{transform:translate(300px,86px);opacity:0}52%{opacity:1}
+ 76%{transform:translate(0,86px);opacity:1}82%,100%{opacity:0}}
+@keyframes stamp{0%,80%{opacity:0;transform:scale(.6)}88%{opacity:1;transform:scale(1.08)}
+ 92%,100%{opacity:1;transform:scale(1)}}
+.u1{animation:up1 5.5s ease-in-out infinite}
+.d1x{animation:dn1 5.5s ease-in-out infinite}
+.st{animation:stamp 5.5s ease-out infinite;transform-origin:480px 430px}
+</style>
+<text x="480" y="48" text-anchor="middle" class="hd f">UPLOAD IT, FETCH IT BACK, PROVE IT IS IDENTICAL</text>
+<rect x="60" y="120" width="230" height="200" rx="14" class="bxa u"/>
+<text x="175" y="152" text-anchor="middle" class="t1 u d1" style="font-size:16px">your machine</text>
+<rect x="88" y="176" width="174" height="60" rx="9" class="bx p d2"/>
+<text x="175" y="200" text-anchor="middle" class="tm2">/tmp/blob.bin</text>
+<text x="175" y="222" text-anchor="middle" class="t3">200 000 random bytes</text>
+<text x="175" y="272" text-anchor="middle" class="t3 f d3">curl -F "file=@..."</text>
+<text x="175" y="296" text-anchor="middle" class="t3 f d3">multipart/form-data</text>
+<rect x="670" y="120" width="230" height="200" rx="14" class="bxg u d1"/>
+<text x="785" y="152" text-anchor="middle" class="t1 u d2" style="font-size:16px">www/uploads/</text>
+<rect x="698" y="176" width="174" height="60" rx="9" class="bx p d4"/>
+<text x="785" y="200" text-anchor="middle" class="tm2">blob.bin</text>
+<text x="785" y="222" text-anchor="middle" class="t3">200 000 bytes on disk</text>
+<text x="785" y="272" text-anchor="middle" class="t3 f d5">201 Created</text>
+<g class="u1"><rect x="306" y="184" width="120" height="30" rx="7" fill="#0d1b28" stroke="#5ad1ff"/>
+<text x="366" y="204" text-anchor="middle" class="tm2" style="fill:#5ad1ff">bytes →</text></g>
+<g class="d1x"><rect x="306" y="184" width="120" height="30" rx="7" fill="#111f18" stroke="#6ee7a8"/>
+<text x="366" y="204" text-anchor="middle" class="tm2" style="fill:#6ee7a8">← bytes</text></g>
+<line x1="296" y1="200" x2="664" y2="200" stroke="#22222f" class="f d3"/>
+<line x1="296" y1="286" x2="664" y2="286" stroke="#22222f" class="f d3"/>
+<text x="480" y="362" text-anchor="middle" class="tm2 f d7">cmp /tmp/blob.bin /tmp/back.bin</text>
+<g class="st"><rect x="380" y="400" width="200" height="58" rx="12" fill="#111f18" stroke="#6ee7a8" stroke-width="2"/>
+<text x="480" y="437" text-anchor="middle" style="font-family:var(--sans);font-size:22px;font-weight:700;fill:#6ee7a8">identical</text></g>
+<text x="480" y="492" text-anchor="middle" class="t3 u d9">Random bytes on purpose — anything treated as text would corrupt them.</text>`);
+
+/* ---- 12. CGI --------------------------------------------------- */
+SCENES.cgi = () => SVG(`
+<style>
+@keyframes born{0%{opacity:0;transform:scale(.4) translateX(-60px)}
+ 100%{opacity:1;transform:none}}
+@keyframes down{0%{transform:translateY(0);opacity:0}10%{opacity:1}
+ 60%{transform:translateY(96px);opacity:1}70%{opacity:0}100%{opacity:0}}
+@keyframes back{0%,58%{transform:translateY(0);opacity:0}66%{opacity:1}
+ 96%{transform:translateY(-96px);opacity:1}100%{opacity:0}}
+.bn{animation:born .7s cubic-bezier(.2,1.3,.4,1) both;transform-origin:770px 270px}
+.dw{animation:down 4s ease-in-out infinite}
+.bk{animation:back 4s ease-in-out infinite}
+@keyframes eof{0%,58%{opacity:0}64%,100%{opacity:1}}
+.ef{animation:eof 4s infinite}
+</style>
+<text x="480" y="46" text-anchor="middle" class="hd f">CGI — THE SERVER RUNS ANOTHER PROGRAM</text>
+<rect x="46" y="120" width="250" height="240" rx="14" class="bxy u"/>
+<text x="171" y="152" text-anchor="middle" class="t1 u d1" style="font-size:16px">the server</text>
+<text x="171" y="182" text-anchor="middle" class="t3 u d1">route /cgi · cgi .py python3</text>
+<rect x="72" y="204" width="198" height="40" rx="8" class="bx p d2"/>
+<text x="171" y="229" text-anchor="middle" class="tm2">fork + exec</text>
+<text x="171" y="278" text-anchor="middle" class="t3 f d3">the only fork in the</text>
+<text x="171" y="300" text-anchor="middle" class="t3 f d3">whole project —</text>
+<text x="171" y="322" text-anchor="middle" class="t3 f d3" style="fill:#6ee7a8">and the subject allows it</text>
+<g class="bn d3">
+<rect x="664" y="120" width="250" height="240" rx="14" class="bxg"/>
+<text x="789" y="152" text-anchor="middle" class="t1" style="font-size:16px;fill:#6ee7a8">python3 hello.py</text>
+<text x="789" y="184" text-anchor="middle" class="t3">reads os.environ</text>
+<text x="789" y="208" text-anchor="middle" class="t3">reads sys.stdin until EOF</text>
+<text x="789" y="232" text-anchor="middle" class="t3">prints headers, blank line, body</text>
+<rect x="690" y="256" width="198" height="36" rx="8" class="bx"/>
+<text x="789" y="280" text-anchor="middle" class="tm2" style="font-size:11px">cwd = www/cgi</text>
+<text x="789" y="322" text-anchor="middle" class="t3">so relative paths work</text>
+</g>
+<rect x="336" y="132" width="288" height="74" rx="10" class="bxa u d4"/>
+<text x="480" y="158" text-anchor="middle" class="hd" style="font-size:11px;fill:#5ad1ff">ENVIRONMENT</text>
+<text x="480" y="182" text-anchor="middle" class="tm2" style="font-size:11px">REQUEST_METHOD · QUERY_STRING</text>
+<text x="480" y="200" text-anchor="middle" class="tm2" style="font-size:11px">PATH_INFO · CONTENT_LENGTH</text>
+<rect x="336" y="222" width="288" height="66" rx="10" class="bx u d5"/>
+<text x="480" y="248" text-anchor="middle" class="t3">STDIN — the request body</text>
+<text x="480" y="274" text-anchor="middle" class="ef" style="font-family:var(--mono);font-size:12px;fill:#ffb347">then we CLOSE it → EOF</text>
+<g class="dw"><circle cx="480" cy="300" r="7" fill="#5ad1ff"/></g>
+<rect x="336" y="316" width="288" height="60" rx="10" class="bxg u d6"/>
+<text x="480" y="342" text-anchor="middle" class="t3">STDOUT — whatever it printed</text>
+<text x="480" y="364" text-anchor="middle" class="t3" style="fill:#6ee7a8">becomes the HTTP response</text>
+<g class="bk"><circle cx="480" cy="404" r="7" fill="#6ee7a8"/></g>
+<text x="480" y="452" text-anchor="middle" class="t2 u d8">Closing the pipe is how the script knows the body ended.</text>
+<text x="480" y="484" text-anchor="middle" class="t3 u d9">By this point the body is plain bytes — so chunked and unchunked share one path.</text>`);
+
+/* ---- 13. timeouts / slowloris ---------------------------------- */
+SCENES.timeout = () => SVG(`
+<style>
+@keyframes tick{to{transform:rotate(360deg)}}
+@keyframes fire{0%,72%{opacity:0;transform:scale(.7)}80%{opacity:1;transform:scale(1.06)}
+ 86%,100%{opacity:1;transform:scale(1)}}
+@keyframes dots{0%,20%{opacity:.2}50%{opacity:1}100%{opacity:.2}}
+.tick{transform-origin:214px 268px;animation:tick 4s linear infinite}
+.fire{animation:fire 4s ease-out infinite;transform-origin:718px 300px}
+.dt1{animation:dots 1.4s infinite}.dt2{animation:dots 1.4s infinite .2s}.dt3{animation:dots 1.4s infinite .4s}
+</style>
+<text x="480" y="48" text-anchor="middle" class="hd f">THE CLIENT THAT NEVER FINISHES</text>
+<rect x="60" y="130" width="308" height="276" rx="14" class="bxr u"/>
+<text x="214" y="166" text-anchor="middle" class="t1 u d1" style="font-size:16px">a half-sent request</text>
+<text x="214" y="196" text-anchor="middle" class="tm2 u d2" style="font-size:11px">GET / HTTP/1.1 ⏎</text>
+<text x="214" y="216" text-anchor="middle" class="tm2 u d2" style="font-size:11px">Host: localhost ⏎</text>
+<text x="214" y="240" text-anchor="middle" class="t3 u d3" style="fill:#ff6b7a">…and then nothing. Ever.</text>
+<circle cx="214" cy="268" r="0" fill="none"/>
+<circle cx="214" cy="300" r="34" fill="none" stroke="#7a3540" stroke-width="3" class="p d4"/>
+<g class="tick" style="transform-origin:214px 300px">
+  <line x1="214" y1="300" x2="214" y2="276" stroke="#ff6b7a" stroke-width="3"/></g>
+<circle cx="214" cy="300" r="3.5" fill="#ff6b7a" class="p d4"/>
+<text x="214" y="368" text-anchor="middle" class="t3 f d5">holding a slot, doing nothing</text>
+<text x="214" y="392" text-anchor="middle" class="t3 f d5" style="fill:#ff6b7a">this attack has a name: slowloris</text>
+<path d="M382 268 L560 268" class="ar f d6"/>
+<text x="470" y="252" text-anchor="middle" class="t3 f d6">15 s</text>
+<rect x="576" y="130" width="324" height="276" rx="14" class="bxy u d5"/>
+<text x="738" y="166" text-anchor="middle" class="t1 u d6" style="font-size:16px">the sweep</text>
+<text x="738" y="198" text-anchor="middle" class="t3 u d7">every tick, look for stale connections</text>
+<g class="fire"><rect x="618" y="222" width="240" height="56" rx="11" fill="#241216" stroke="#ff6b7a" stroke-width="2"/>
+<text x="738" y="257" text-anchor="middle" style="font-family:var(--mono);font-size:16px;fill:#ff6b7a">408 Request Timeout</text></g>
+<text x="738" y="312" text-anchor="middle" class="t3 f d9">queued through <tspan fill="#ffb347">epoll</tspan>, like every other write</text>
+<text x="738" y="342" text-anchor="middle" class="t3 f d10">then the socket is closed for good</text>
+<text x="738" y="380" text-anchor="middle" class="t3 f d11" style="fill:#6ee7a8">an idle keep-alive connection is just closed —</text>
+<text x="738" y="400" text-anchor="middle" class="t3 f d11" style="fill:#6ee7a8">nothing is owed to it</text>
+<text x="480" y="470" text-anchor="middle" class="t2 u d12">Nothing bypasses the loop. Not even the answer that says "you were too slow".</text>`);
+
+/* ---- 14. the stress montage ------------------------------------ */
+SCENES.stress = () => SVG(`
+<style>
+@keyframes rain{0%{transform:translateY(-30px);opacity:0}
+ 10%{opacity:1}90%{opacity:1}100%{transform:translateY(300px);opacity:0}}
+@keyframes flat{0%,100%{transform:translateY(0)}}
+@keyframes count{0%{opacity:0}100%{opacity:1}}
+.rn{animation:rain 1.6s linear infinite}
+</style>
+<text x="480" y="46" text-anchor="middle" class="hd f">64 CONNECTIONS, 20 SECONDS, NOTHING BREAKS</text>
+${Array.from({length:14},(_,i)=>`
+<circle cx="${76+i*62}" cy="0" r="4" fill="#5ad1ff" class="rn" style="animation-delay:${(i%7)*.22}s"/>`).join('')}
+<rect x="60" y="150" width="410" height="150" rx="14" class="bxg u d2"/>
+<text x="265" y="184" text-anchor="middle" class="hd" style="font-size:11px;fill:#6ee7a8">THROUGHPUT</text>
+<text x="265" y="238" text-anchor="middle" style="font-family:var(--mono);font-size:38px;fill:#6ee7a8;font-weight:700">102 346</text>
+<text x="265" y="266" text-anchor="middle" class="t3">requests served · 0 failed</text>
+<text x="265" y="290" text-anchor="middle" class="t3">≈ 4 961 per second</text>
+<rect x="490" y="150" width="410" height="150" rx="14" class="bxa u d3"/>
+<text x="695" y="184" text-anchor="middle" class="hd" style="font-size:11px;fill:#5ad1ff">AVAILABILITY</text>
+<text x="695" y="238" text-anchor="middle" style="font-family:var(--mono);font-size:38px;fill:#5ad1ff;font-weight:700">100.00%</text>
+<text x="695" y="266" text-anchor="middle" class="t3">the audit asks for 99.5%</text>
+<text x="695" y="290" text-anchor="middle" class="t3">siege -b · no delay between requests</text>
+<rect x="60" y="326" width="840" height="150" rx="14" class="bxy u d5"/>
+<text x="480" y="358" text-anchor="middle" class="hd" style="font-size:11px;fill:#ffb347">RESIDENT MEMORY, SAMPLED EVERY SECOND</text>
+<line x1="110" y1="424" x2="850" y2="424" stroke="#6b5424" stroke-width="2" class="dr d6" style="--L:740"/>
+${[0,1,2,3,4,5,6,7,8,9].map(i=>`
+<circle cx="${130+i*78}" cy="424" r="4.5" fill="#ffb347" class="p d${6+(i%6)}"/>`).join('')}
+<text x="110" y="404" class="tm2" style="font-size:11px">2176 KiB</text>
+<text x="850" y="404" text-anchor="end" class="tm2" style="font-size:11px">2176 KiB</text>
+<text x="480" y="458" text-anchor="middle" class="t2 f d10">Not "roughly flat". <tspan fill="#6ee7a8">Identical</tspan>, after a hundred thousand requests.</text>`);
+
+/* ---- 15. recap montage ----------------------------------------- */
+SCENES.recap = () => SVG(`
+<style>
+@keyframes cut{0%,100%{opacity:0;transform:scale(.94)}
+ 4%,20%{opacity:1;transform:scale(1)}24%{opacity:0}}
+.c1{animation:cut 7s ease-in-out infinite}
+.c2{animation:cut 7s ease-in-out infinite 1.4s}
+.c3{animation:cut 7s ease-in-out infinite 2.8s}
+.c4{animation:cut 7s ease-in-out infinite 4.2s}
+.c5{animation:cut 7s ease-in-out infinite 5.6s}
+</style>
+<text x="480" y="60" text-anchor="middle" class="hd f">FOUR SENTENCES, AND YOU HAVE THE WHOLE PROJECT</text>
+<g class="c1"><rect x="180" y="140" width="600" height="230" rx="16" class="bxa"/>
+<text x="480" y="242" text-anchor="middle" class="t1" style="font-size:26px">Every socket goes into</text>
+<text x="480" y="284" text-anchor="middle" class="t1" style="font-size:26px;fill:#5ad1ff">one epoll instance.</text></g>
+<g class="c2"><rect x="180" y="140" width="600" height="230" rx="16" class="bxy"/>
+<text x="480" y="242" text-anchor="middle" class="t1" style="font-size:26px">We sleep in exactly</text>
+<text x="480" y="284" text-anchor="middle" class="t1" style="font-size:26px;fill:#ffb347">one place.</text></g>
+<g class="c3"><rect x="180" y="140" width="600" height="230" rx="16" class="bxg"/>
+<text x="480" y="228" text-anchor="middle" class="t1" style="font-size:26px">One read or one write</text>
+<text x="480" y="268" text-anchor="middle" class="t1" style="font-size:26px;fill:#6ee7a8">per readiness event —</text>
+<text x="480" y="308" text-anchor="middle" class="t2">and never a socket touched anywhere else.</text></g>
+<g class="c4"><rect x="180" y="140" width="600" height="230" rx="16" class="bxr"/>
+<text x="480" y="242" text-anchor="middle" class="t1" style="font-size:26px">Nothing is fatal</text>
+<text x="480" y="284" text-anchor="middle" class="t1" style="font-size:26px;fill:#ff6b7a">that does not have to be.</text></g>
+<g class="c5"><rect x="180" y="140" width="600" height="230" rx="16" class="bx"/>
+<text x="480" y="262" text-anchor="middle" class="t1" style="font-size:24px" fill="url(#gST)">Everything else follows from those four.</text></g>
+<text x="480" y="440" text-anchor="middle" class="t3 f d6">say them in your own words, and you have passed the hard part</text>`);
+
+/* ---- 16. outro -------------------------------------------------- */
+SCENES.outro = () => SVG(`
+<g class="kb">
+<text x="480" y="212" text-anchor="middle" class="hd f" style="font-size:13px">THAT IS THE EPISODE</text>
+<text x="480" y="288" text-anchor="middle" class="u d1" fill="url(#gST)"
+  style="font-family:var(--sans);font-size:46px;font-weight:800;letter-spacing:-.02em">go and defend it</text>
+<line x1="360" y1="322" x2="600" y2="322" stroke="#2c2c40" class="dr d2" style="--L:240"/>
+<text x="480" y="364" text-anchor="middle" class="t2 u d3">You did not memorise this. You understand it.</text>
+<text x="480" y="400" text-anchor="middle" class="t3 u d4">And if you are asked something you do not know — say so, then say how you would find out.</text>
+</g>`);
+/* ============================ THE SCRIPT ============================
+   w: 'S' student · 'T' teacher   ·   sc: cut to this scene   ·   seg: new segment */
+const SCRIPT = [
+
+/* ---------------- 1. cold open ---------------- */
+{w:'S', seg:'Cold open', sc:'title', s:"So. I built this thing, it passes all its tests, and I still could not tell you in one sentence what it actually is."},
+{w:'T', s:"Then let us start there, because that one sentence is most of the audit. Try it. What does your program do?"},
+{w:'S', s:"It... serves web pages?"},
+{w:'T', sc:'exchange', s:"Close, but you can do better. It reads some text off a network connection, works out what that text is asking for, and writes some text back. That is it. That is the whole job."},
+{w:'S', s:"That cannot be it. It is two thousand lines."},
+{w:'T', s:"It is two thousand lines because of one extra word: simultaneously. Reading and writing text is easy. Doing it for hundreds of clients at once, on a single thread, without ever making one of them wait for another — that is where the two thousand lines went."},
+{w:'S', s:"Okay. That is a better sentence than mine."},
+{w:'T', s:"Hold on to it. Every time something in the code looks strange today, the answer will be that same word."},
+
+/* ---------------- 2. HTTP is text ---------------- */
+{w:'S', seg:'HTTP is just text', sc:'httptext', s:"You keep saying text. Do you mean that literally?"},
+{w:'T', s:"Completely literally. Here is a real request. A first line with a method, a path and a version. Then some headers, one per line, each a name and a value. Then an empty line. And then, if there is one, a body."},
+{w:'S', s:"And the empty line matters?"},
+{w:'T', s:"The empty line is the single most important byte sequence in the protocol. It is how the receiver knows the headers have finished and the body is about to start. In the code it is four bytes — carriage return, line feed, carriage return, line feed — and the parser literally scans the buffer looking for them."},
+{w:'S', s:"Why four? I thought a new line was one character."},
+{w:'T', s:"On your machine, yes. HTTP was standardised when that was not settled, so it insists on both: carriage return then line feed, thirteen then ten. Two bytes per line ending, so a blank line is four in a row. Get that wrong and nothing works, and the error is invisible, because the two versions look identical on screen."},
+{w:'S', s:"That is horrible."},
+{w:'T', s:"It is, a bit. But look at the upside on the right. Because it is only text, you can type a request by hand. That printf and netcat command sends a real HTTP request without any library at all, and your server answers it properly. Run that during the audit. It proves you understand the protocol rather than a library that hides it."},
+{w:'S', s:"And the third rule — Content-Length?"},
+{w:'T', s:"That one says how many body bytes follow. Without it the receiver cannot tell where your message ends and the next one begins. It is also what makes keep-alive possible — sending several requests down one connection — because the client knows exactly where to stop reading."},
+
+/* ---------------- 3. the blocking problem ---------------- */
+{w:'S', seg:'Why one thread is hard', sc:'card:ACT TWO|The problem the whole project exists to solve', s:"Right. So if it is that simple, where did the difficulty come from?"},
+{w:'T', sc:'blocking', s:"From one fact. When you call read on a socket that has no data yet, it does not return. It parks your thread. The thread stops existing as far as the CPU is concerned until some bytes turn up."},
+{w:'S', s:"That seems fine though? It wakes up when data comes."},
+{w:'T', s:"It is fine if you have a thread to spare. Look at the left. One thread per client, each one frozen inside read, waiting for its own client. That works, and it is easy to write. But ten thousand clients means ten thousand threads, each with megabytes of stack, and the operating system spending its life switching between them."},
+{w:'S', s:"And we are not allowed threads anyway."},
+{w:'T', s:"Exactly. The subject says one process, one thread. So now imagine the left-hand picture with only one of those boxes. One slow client — someone on terrible mobile signal — and your entire server is frozen. Not slow. Frozen. Nobody else gets served at all."},
+{w:'S', s:"Okay, so make the sockets non-blocking. Problem solved?"},
+{w:'T', s:"That is the natural next thought, and it is worth understanding why it is not enough, because auditors probe here. If you mark a socket non-blocking, read returns immediately with a would-block error instead of waiting. Good — your thread is free."},
+{w:'S', s:"So then I just... check them all?"},
+{w:'T', s:"And there is the trap. You have ten thousand sockets and no idea which have data, so you would ask each one in turn, forever. That is a busy loop. One hundred percent of a CPU core spent almost entirely on questions whose answer is no."},
+{w:'S', s:"So non-blocking on its own is actually worse."},
+{w:'T', s:"It is differently bad. What you actually need is for somebody to tell you when a socket becomes ready, so that you can sleep in between. And the only somebody who knows is the kernel, because the kernel is the one receiving the packets."},
+
+/* ---------------- 4. epoll ---------------- */
+{w:'S', seg:'epoll', sc:'epoll', s:"And that is epoll."},
+{w:'T', s:"That is epoll. Three moves. First you register: for each socket you tell the kernel, watch this one, and here is a number of my choosing to identify it. Second, the kernel keeps that list and watches all of them for you. Third, you call epoll wait — once — and it sleeps until at least one is ready, then hands back only those."},
+{w:'S', s:"Why does the number I choose matter?"},
+{w:'T', s:"Because when the event comes back it carries that number with it. So you do not search anything. In this project the numbers are small integers: anything below the number of listening sockets is a listener, anything above is a client. One comparison and you know exactly whose event you are holding."},
+{w:'S', s:"Neat. And the audit asks why only one epoll — I have that memorised but I am not sure I believe it."},
+{w:'T', s:"Then let us make you believe it. Epoll wait is a blocking call. If you had two epoll instances, you would have two places your thread could be asleep. With one thread you can only be asleep in one of them at a time — so while you are waiting on the first, everything registered in the second is being completely ignored."},
+{w:'S', s:"Oh. One would starve the other."},
+{w:'T', s:"Precisely. With a single instance there is exactly one place in the entire process where it sleeps, and every socket in the program is registered there. That is the real answer, and it is much better than reciting the rule."},
+{w:'S', s:"How do I prove there is only one, if they ask?"},
+{w:'T', s:"Grep for it in front of them. One epoll create, one epoll wait, in the whole program. Two lines of output. That is far more convincing than any explanation, and it takes four seconds."},
+{w:'S', s:"There is a flag thing too — level something?"},
+{w:'T', s:"Level-triggered, and it matters more than it sounds. It means that for as long as a socket still has unread data, every call to epoll wait keeps reporting it. Which is what makes it safe to read only once per event and then stop — anything you did not read will simply be offered again next time."},
+
+/* ---------------- 5. the loop ---------------- */
+{w:'S', seg:'The event loop', sc:'card:ACT THREE|Reading the loop', s:"Alright. Show me the actual loop."},
+{w:'T', sc:'loop', s:"Here it is as a picture, and this is the one to keep in your head. We sleep in epoll wait with a one-second timeout. It returns a handful of ready descriptors. For each one, we look at the token: if it is a listener we accept new connections, otherwise we look up that client and do exactly one read or one write. Then, before going back to sleep, we sweep for connections that have gone stale. And around again."},
+{w:'S', s:"Why the one second? Why not just sleep until something happens?"},
+{w:'T', s:"Good question, and it is the kind auditors like. If we slept forever, the timeout sweep at the bottom would never run when the server is quiet. A connection that went idle at three in the morning would sit there until somebody else happened to connect. The one-second tick guarantees we wake up regularly to check."},
+{w:'S', s:"And 'exactly one read or one write' — that is the rule they check?"},
+{w:'T', sc:'oneread', s:"That is the rule. Watch what it looks like when a request arrives in pieces, which is completely normal on a real network. First event: we read once, we get three hundred bytes, we hand it to the parser, and the parser says — not enough, I have not seen the blank line yet."},
+{w:'S', s:"And then we just... stop?"},
+{w:'T', s:"We just stop. We go back to the loop and serve other people. Second event: read once more, append to the same buffer, parser says the headers are done but the body is short. Stop again. Third event: the rest arrives, the parser says complete, and now we handle it."},
+{w:'S', s:"Three events, three reads, one request. And no loop anywhere."},
+{w:'T', s:"No loop anywhere. If somebody opens that function during the audit, that is precisely what they are looking for — and its absence is the answer. The parser, by the way, is a pure function of the buffer. It does not remember anything between calls. You just call it again when more bytes arrive, and it tells you which of four situations you are in."},
+{w:'S', s:"Four?"},
+{w:'T', s:"Need more headers. Need more body. Complete, here is your request and here is how many bytes it used. Or: this will never be valid HTTP, send a four hundred. Because it is a Rust enum, the compiler forces the loop to handle all four. There is no way to accidentally treat a half-arrived request as a finished one."},
+
+/* ---------------- 6. state + partial write ---------------- */
+{w:'S', seg:'Two phases', sc:'phases', s:"Something bothers me. If you can only read a bit at a time, how does the code remember where it got to?"},
+{w:'T', s:"That is exactly the right question, and it is the deepest consequence of the whole design. In an ordinary blocking server you write: read the request, handle it, write the response. Three statements in order, and the language keeps your place for you on the call stack."},
+{w:'S', s:"And here you cannot."},
+{w:'T', s:"Here you cannot, because you leave and come back. So you have to write your place down. That is what the Connection struct is: the bytes received so far, the response being sent, how much of it has gone out, and which of two phases we are in. Every field in it exists because something that used to be implicit had to be made explicit."},
+{w:'S', s:"Two phases meaning reading or writing."},
+{w:'T', s:"Reading or writing, never both. And notice what changes with it — the epoll interest. While reading, we ask epoll to tell us when the socket is readable. The moment a complete request is parsed, we flip to writing and ask to be told when it is writable instead."},
+{w:'S', s:"Wait. Where does it actually send the response?"},
+{w:'T', s:"Not where you would think, and this is a favourite audit question. The function called respond does not write a single byte. It serialises the response into a buffer, flips the phase, and tells epoll: stop telling me this socket is readable, tell me when it is writable. The bytes go out later, when epoll says so."},
+{w:'S', s:"Huh. So the name is a bit of a lie."},
+{w:'T', s:"It is a little. But that indirection is the whole mechanism behind the requirement that all writes go through epoll. Nothing is ever written outside a readiness event — including, and this is the nice detail, the timeout response we will get to later."},
+{w:'S', sc:'partial', s:"And writing has the same one-per-event rule?"},
+{w:'T', s:"Same rule. And this is where it pays off. Picture serving a two megabyte file. The socket's send buffer might take two hundred kilobytes at a time. In a blocking server the thread would sit inside write until all two megabytes had gone, and every other client would wait for the slowest download on the server."},
+{w:'S', s:"Whereas here it goes out in chunks."},
+{w:'T', s:"We write what fits, remember the offset, and return to the loop — which immediately goes off and serves everybody else. Next time that socket has room, epoll tells us and we send the next piece. The big download and the small ones interleave. Nobody is starved. That is the entire payoff of the design, in one picture."},
+
+/* ---------------- 7. the code shape + routing ---------------- */
+{w:'S', seg:'The code itself', sc:'files', s:"Okay, I want to be able to find things. Where does everything live?"},
+{w:'T', s:"Six files, and the data runs left to right. Main reads the config file and starts the loop. Config turns that text into structs. Server is the event loop — the file we have been describing. Http converts bytes into a Request and a Response back into bytes. Handlers takes a parsed request and decides what the answer should be. And cgi runs an external program when a route asks for it."},
+{w:'S', s:"And the response comes back along the same path."},
+{w:'T', s:"Along the same path. If an auditor names a feature, you should be able to name the file within a second. That alone signals that you wrote it."},
+{w:'S', sc:'routes', s:"How does it decide which route handles a URL?"},
+{w:'T', s:"Longest matching prefix wins. With routes for slash and slash files defined, a request for slash files slash something belongs to slash files, because it is the longer match. Straightforward — except for one trap, on the third row."},
+{w:'S', s:"Slash filesystem. Which starts with slash files."},
+{w:'T', s:"It does. A naive starts-with check would hand slash filesystem to the slash files route, which is completely wrong — different directory, possibly different permissions. So the code also requires the very next byte after the prefix to be a slash. One extra condition, and the trap is closed. There is a unit test for exactly that case."},
+{w:'S', s:"I like that there is a test for the trap and not just the happy path."},
+{w:'T', s:"That is worth saying out loud in the audit, actually. Tests that only cover the case you were already thinking about are decoration. The valuable ones are the ones that pin down the case you nearly got wrong."},
+
+/* ---------------- 8. uploads and CGI ---------------- */
+{w:'S', seg:'Uploads and CGI', sc:'upload', s:"The audit wants me to upload a file and prove it came back uncorrupted. Why would it be corrupted?"},
+{w:'T', s:"Because of one very easy mistake. An uploaded file is arbitrary bytes — a PNG, a zip, anything. If anywhere in your upload path you converted those bytes to a string, you would either fail outright or silently replace the invalid ones with a placeholder character. The file would come back the right length and completely broken."},
+{w:'S', s:"And that is why the multipart parser works on raw bytes."},
+{w:'T', s:"Raw bytes the whole way, never a string. Which is why this demonstration passes. Two hundred thousand bytes of pure randomness from dev urandom — random on purpose, because random bytes are definitely not valid text. Upload it, download it, and compare with cmp, which prints nothing at all when two files are identical."},
+{w:'S', s:"Silence is the proof. That is quite satisfying."},
+{w:'T', s:"It is. And do that one exactly as written during the audit, because the sheet asks for it in those words: get them back to test they were not corrupted."},
+{w:'S', sc:'cgi', s:"Then CGI. Honestly I still do not really know what CGI is."},
+{w:'T', s:"It is the oldest way to make a web page dynamic, from about nineteen ninety-three, and it is beautifully simple. Instead of reading a file off disk and sending it, the server runs a program, and sends whatever that program prints. That is the whole idea."},
+{w:'S', s:"And we are allowed to start a process? I thought it was one process only."},
+{w:'T', s:"The subject grants exactly this exception — you are allowed to fork for CGI. It is the only fork in the project. We pass the request in through environment variables, we pass the body in through the program's standard input, and we read its standard output back."},
+{w:'S', s:"How does the script know the body has ended?"},
+{w:'T', s:"That is the loveliest detail in the file. We write the body into the pipe and then we close it. Closing the write end of a pipe is what makes the reader see end-of-file. So the script's read call returns and it knows the body is over — and that behaviour comes not from a line of code but from a variable going out of scope."},
+{w:'S', s:"And chunked bodies? The audit specifically asks about chunked versus unchunked."},
+{w:'T', s:"And here is the strong answer. By the time execution reaches the CGI code, the body is already a plain vector of bytes — the chunked framing was stripped away much earlier, by the request parser. So there is one code path, not two."},
+{w:'S', s:"So it is not that both cases work. It is that there is only one case."},
+{w:'T', s:"Exactly that. Say it that way and you have answered a much bigger question than the one you were asked."},
+
+/* ---------------- 9. never crashes, timeouts, stress ---------------- */
+{w:'S', seg:'Never crashes', sc:'timeout', s:"The subject says it never crashes, in bold. How can you promise that?"},
+{w:'T', s:"Two separate promises, actually. The first is about bugs: every handler runs inside a catch — so if anything in the handler chain panics, an index out of range, an unwrap on nothing, that panic is caught, that one client receives a five hundred, and the server keeps running. Say that sentence in the audit. It is the whole answer."},
+{w:'S', s:"And the second promise?"},
+{w:'T', s:"The second is about clients who behave badly on purpose. Look at the left. Somebody opens a connection, sends half a request — a request line, a header — and then simply stops. Forever. They are holding a slot and will never finish."},
+{w:'S', s:"That feels deliberate."},
+{w:'T', s:"It has a name. Slowloris. Open a few hundred of those and a naive server has no capacity left for anyone real. The defence is the sweep on the right: every tick, look for connections that have been silent too long. Fifteen seconds here."},
+{w:'S', s:"And you just close them?"},
+{w:'T', s:"Depends. A connection that is merely idle — keep-alive, no request started — we just close, because nothing is owed to it. But one that started a request and stopped halfway is owed an answer, so it gets a four hundred and eight, Request Timeout."},
+{w:'S', s:"And that answer goes out... through epoll?"},
+{w:'T', s:"Through epoll, queued exactly like every other write. That is the detail I would volunteer without being asked, because the audit question is whether writing is always done through epoll, and the word on the sheet is always, in capitals. Even the message that says you were too slow goes out the normal way."},
+{w:'S', seg:'Under load', sc:'stress', s:"And it survives siege?"},
+{w:'T', s:"Comfortably. A hundred and two thousand requests in twenty seconds across sixty-four concurrent connections, zero failures, a hundred percent availability against a requirement of ninety-nine point five."},
+{w:'S', s:"And memory? They check that too."},
+{w:'T', s:"Look at the bottom strip. Resident memory sampled every second for the whole run. It does not move. Two thousand one hundred and seventy-six kilobytes at one second, at ten seconds, at twenty seconds, after a hundred thousand requests."},
+{w:'S', s:"Why does it not grow? Genuinely — I did not write any free calls."},
+{w:'T', s:"And that is the answer. In Rust, when a value's owner goes out of scope, the value is released. When a connection dies you remove it from the map — and its socket, its read buffer and its write buffer all go with it, automatically. There is no free to call and therefore none to forget."},
+{w:'S', s:"So 'no memory leak' is not something I did. It is something the language did."},
+{w:'T', s:"It is something the design did, and the language enforced. With one exception you should know about, because it is the one place you could genuinely have leaked: the session store. Every client gets a session cookie, and if you inserted a row for every anonymous request, siege would create a hundred thousand rows and the memory would visibly climb while the auditor watched."},
+{w:'S', s:"So how is that avoided?"},
+{w:'T', s:"Minting a session identifier touches no shared state at all — nothing is written anywhere. A row only appears when a session is actually used. And even then the store is bounded twice over: entries expire after thirty minutes, and there is a hard cap on how many can exist. Either bound alone would do; having both means it cannot grow no matter what a client tries."},
+
+/* ---------------- 10. recap ---------------- */
+{w:'S', seg:'The recap', sc:'card:ACT FOUR|What to actually remember', s:"Okay. If I forget everything else, what do I keep?"},
+{w:'T', sc:'recap', s:"Four sentences. Every socket — listeners and clients alike — goes into one epoll instance. We sleep in exactly one place. We do one read or one write per readiness event, and we never touch a socket anywhere else. And nothing is fatal that does not have to be."},
+{w:'S', s:"That last one is a bit different from the others."},
+{w:'T', s:"It is, and it is the one that shows up most often in the code. A broken block in the config file is reported and skipped, and the other servers still start. A port already in use is reported and skipped, and the other ports still bind. A missing custom error page falls back to a built-in one. A handler that panics becomes a five hundred. A CGI script that hangs is killed after eight seconds."},
+{w:'S', s:"Same idea, five times."},
+{w:'T', s:"Same idea, five times, in five different files. And when the audit asks why the server should still work if one of the configurations is broken, that is your answer: one typo must not take down every other site the machine is hosting. Nginx behaves the same way."},
+{w:'S', s:"One last thing. What if they ask me something I genuinely do not know?"},
+{w:'T', sc:'outro', s:"Then say so — and then say what you would do to find out. That answer scores better than a confident guess every single time, and every auditor worth the name respects it. There is one honest limitation in this project, by the way, and you should raise it yourself rather than wait."},
+{w:'S', s:"Which is?"},
+{w:'T', s:"Reading the CGI script's output is the one place the loop waits outside epoll. It is bounded to eight seconds and it only affects CGI requests, and the subject explicitly permits forking for CGI. But if you volunteer it, and then describe the clean version — register the child's output in the same epoll and give the connection a third phase — you have shown you know the difference between taking a shortcut knowingly and not understanding the problem."},
+{w:'S', s:"Volunteer the weakness. That feels backwards."},
+{w:'T', s:"It reads as confidence, not weakness. Someone who can name the soft spot in their own design is someone who understands the design. Go and defend it — you did not memorise this, you understand it, and that shows in about ten seconds."},
+{w:'S', s:"Thanks. That was genuinely useful."},
+{w:'T', s:"Good luck."}
+];
+/* ============================ PLAYER ============================ */
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+/* --- build a flat timeline of lines, measured in words --- */
+const WPS = 2.6;                                   /* words per second at 1.0x */
+
+/* Break a spoken line into short subtitle cues. A whole paragraph on screen at
+   once would cover the lower third of the frame and read like a wall; real
+   subtitles are a clause or two at a time. */
+function toCues(text){
+  const parts = text.split(/(?<=[.,;:?!—])\s+/);
+  const cues = [];
+  for (const p of parts){
+    const last = cues[cues.length-1];
+    if (last && (last + ' ' + p).length <= 96) cues[cues.length-1] = last + ' ' + p;
+    else cues.push(p);
+  }
+  /* never leave a stubby orphan at the end */
+  if (cues.length > 1 && cues[cues.length-1].length < 24)
+    cues.splice(cues.length-2, 2, cues[cues.length-2] + ' ' + cues[cues.length-1]);
+  return cues;
+}
+let cw = 0, curSeg = 'Cold open', curScene = 'title';
+SCRIPT.forEach((L, i) => {
+  if (L.seg) curSeg = L.seg;
+  if (L.sc)  curScene = L.sc;
+  L.i = i; L.segName = curSeg; L.scene = curScene;
+  /* NOTE: the word count is `nw`, not `w`. `w` is the speaker ('S' or 'T') and
+     overwriting it here would silently make every line the teacher. */
+  L.nw = L.s.split(/\s+/).length;
+  L.cw = cw; cw += L.nw;
+  L.cues = toCues(L.s);
+});
+const TOTAL = cw;
+const secsOf  = w   => w / (WPS * S.rate);
+const wordsOf = sec => sec * (WPS * S.rate);
+
+const SEGS = [];
+SCRIPT.forEach(L => { if (!SEGS.length || SEGS[SEGS.length-1].t !== L.segName)
+  SEGS.push({ t:L.segName, i:L.i, cw:L.cw }); });
+
+/* --- state --- */
+const KEY = 'localhost-podcast-v1';
+function loadSaved(){ try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; }
+  catch(e){ return {}; } }
+const S = Object.assign({ i:0, rate:1, cc:true, tts:true, vT:'', vS:'' }, loadSaved());
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} };
+
+let playing = false, timer = null, gen = 0, lineT0 = null, cueT = [];
+let voices = [], voiceT = null, voiceS = null, shownScene = null;
+
+/* --- scene rendering: re-inserting restarts every CSS animation --- */
+function paintScene(id, force){
+  if (id === shownScene && !force) return;
+  shownScene = id;
+  let html;
+  if (id.startsWith('card:')) {
+    const [t, s] = id.slice(5).split('|');
+    html = SCENES.card(t, s);
+  } else {
+    html = (SCENES[id] || SCENES.title)();
+  }
+  const el = $('#scene');
+  el.style.animation = 'none';
+  el.innerHTML = html;
+  void el.offsetWidth;                      /* force reflow so the cut re-triggers */
+  el.style.animation = 'inFade .45s ease both';
+}
+
+/* --- time helpers --- */
+const fmt = s => { s = Math.max(0, Math.round(s));
+  return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); };
+function posWords(){
+  const L = SCRIPT[S.i];
+  let inside = 0;
+  if (playing && lineT0 !== null)
+    inside = Math.min(L.nw, wordsOf((performance.now() - lineT0) / 1000));
+  return L.cw + inside;
+}
+function lineAt(target){
+  let lo = 0, hi = SCRIPT.length - 1;
+  while (lo < hi){ const m = (lo+hi+1)>>1; if (SCRIPT[m].cw <= target) lo = m; else hi = m-1; }
+  return lo;
+}
+function tick(){
+  const tot = secsOf(TOTAL), el = Math.min(secsOf(posWords()), tot);
+  const pct = tot ? el/tot*100 : 0;
+  $('#fill').style.width = pct+'%';
+  $('#knob').style.left = pct+'%';
+  $('#tm').textContent = fmt(el)+' / '+fmt(tot);
+}
+
+/* --- render one line --- */
+function render(){
+  const L = SCRIPT[S.i];
+  paintScene(L.scene);
+  $('#segname').textContent = L.segName;
+  $("#who").className = L.w === "T" ? "T" : "S";
+  $('#whoname').textContent = L.w === 'T' ? 'TEACHER' : 'STUDENT';
+  $('#line').innerHTML = esc(L.cues[0]);
+  $('#fT').classList.toggle('live', L.w === 'T');
+  $('#fS').classList.toggle('live', L.w === 'S');
+  document.querySelectorAll('.sg').forEach(b =>
+    b.classList.toggle('on', +b.dataset.i <= S.i && (SEGS[+b.dataset.k+1] ? SEGS[+b.dataset.k+1].i > S.i : true)));
+  const on = document.querySelector('.sg.on');
+  if (on) on.scrollIntoView({block:'nearest', inline:'nearest'});
+  tick(); save();
+}
+
+/* --- speech --- */
+function stopSpeech(){
+  gen++;
+  if (timer){ clearTimeout(timer); timer = null; }
+  cueT.forEach(clearTimeout); cueT = [];
+  try { speechSynthesis.cancel(); } catch(e){}
+}
+
+/* Advance the subtitle through the line's cues, timed by their share of the
+   words. Speech engines do not reliably report word boundaries, so this is
+   estimated — close enough for subtitles, and it never blocks the audio. */
+function scheduleCues(L, secs, myGen){
+  let acc = 0;
+  L.cues.forEach((c, k) => {
+    if (k === 0) return;
+    acc += L.cues[k-1].split(/\s+/).length;
+    const at = (acc / L.nw) * secs * 1000;
+    cueT.push(setTimeout(() => {
+      if (myGen === gen) $('#line').innerHTML = esc(L.cues[k]);
+    }, at));
+  });
+}
+
+function speakLine(){
+  const L = SCRIPT[S.i];
+  render();
+  lineT0 = performance.now();
+  const myGen = gen;
+  const advance = () => {
+    if (myGen !== gen) return;
+    if (S.i >= SCRIPT.length - 1){ pause(); toast('End of the episode.'); return; }
+    S.i++; if (playing) speakLine();
+  };
+  const secs = L.nw / (WPS * S.rate);
+  scheduleCues(L, secs, myGen);
+
+  if (S.tts && 'speechSynthesis' in window){
+    const u = new SpeechSynthesisUtterance(L.s);
+    const v = L.w === 'T' ? voiceT : voiceS;
+    if (v){ u.voice = v; u.lang = v.lang; } else { u.lang = 'en-US'; }
+    u.rate = S.rate;
+    /* if only one voice exists, pitch still tells the two speakers apart */
+    u.pitch = L.w === 'T' ? 0.92 : 1.14;
+    let done = false;
+    u.onend = () => { if (!done){ done = true; advance(); } };
+    u.onerror = () => { if (!done){ done = true; advance(); } };
+    speechSynthesis.speak(u);
+    timer = setTimeout(() => { if (!done){ done = true;
+      try{speechSynthesis.cancel();}catch(e){} advance(); } }, secs*1000 + 9000);
+  } else {
+    timer = setTimeout(advance, secs*1000 + 260);
+  }
+}
+function icons(p){ $('#ip').toggleAttribute('hidden', p); $('#ia').toggleAttribute('hidden', !p); }
+function play(){ playing = true; icons(true); speakLine(); }
+function pause(){ playing = false; icons(false); stopSpeech(); lineT0 = null; tick(); }
+function toggle(){ playing ? pause() : play(); }
+
+/* --- navigation --- */
+function goLine(i, keep){
+  const was = keep === undefined ? playing : keep;
+  stopSpeech(); playing = false; lineT0 = null;
+  S.i = Math.max(0, Math.min(SCRIPT.length-1, i));
+  render();
+  if (was) play(); else icons(false);
+}
+function seek(d){
+  const cur = S.i;
+  let t = lineAt(Math.max(0, Math.min(TOTAL - 0.001, posWords() + wordsOf(d))));
+  if (d > 0 && t <= cur) t = Math.min(SCRIPT.length-1, cur+1);   /* always move on */
+  goLine(t);
+  toast((d < 0 ? '⟲ −' : '⟳ +') + Math.abs(d) + 's · ' + fmt(secsOf(SCRIPT[S.i].cw)));
+}
+
+let toastT;
+function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('on'), 2200); }
+
+/* --- voices: two distinct English speakers if we can get them --- */
+function loadVoices(){
+  const all = (window.speechSynthesis ? speechSynthesis.getVoices() : []) || [];
+  voices = all.filter(v => /^en(-|_|$)/i.test(v.lang));
+  if (!voices.length) voices = all;
+  const opts = voices.map(v => '<option value="'+v.voiceURI+'">'+v.name+'</option>').join('');
+  $('#vT').innerHTML = opts || '<option>no voice</option>';
+  $('#vS').innerHTML = opts || '<option>no voice</option>';
+  if (!voices.length) return;
+
+  const male   = ['Google UK English Male','Microsoft Guy','Microsoft Ryan','Microsoft David','Daniel','Alex'];
+  const female = ['Google UK English Female','Microsoft Aria','Microsoft Jenny','Microsoft Zira','Samantha','Karen'];
+  const find = names => { for (const n of names){ const v = voices.find(v => v.name.includes(n)); if (v) return v; } return null; };
+
+  voiceT = voices.find(v => v.voiceURI === S.vT) || find(male)   || voices[0];
+  voiceS = voices.find(v => v.voiceURI === S.vS) || find(female) || voices[1] || voices[0];
+  if (voiceS === voiceT && voices.length > 1) voiceS = voices.find(v => v !== voiceT) || voiceS;
+
+  S.vT = voiceT.voiceURI; S.vS = voiceS.voiceURI; save();
+  $('#vT').value = S.vT; $('#vS').value = S.vS;
+}
+
+/* --- segments strip --- */
+function buildStrip(){
+  $('#strip').innerHTML = SEGS.map((s, k) =>
+    '<button class="sg" data-i="'+s.i+'" data-k="'+k+'"><b>'+String(k+1).padStart(2,'0')+'</b>'
+    + esc(s.t) + '</button>').join('');
+  $('#strip').querySelectorAll('.sg').forEach(b => b.onclick = () => goLine(+b.dataset.i));
+  $('#segticks').innerHTML = SEGS.slice(1).map(s =>
+    '<i style="left:'+(s.cw/TOTAL*100).toFixed(3)+'%"></i>').join('');
+}
+
+/* --- wiring --- */
+function boot(){
+  buildStrip();
+  $("#bcc").classList.toggle("on", S.cc);
+  $("#subs").classList.toggle("off", !S.cc);
+  $("#screen").classList.toggle("subson", S.cc);
+  $("#btts").classList.toggle('on', S.tts);
+  $('#brate').textContent = S.rate.toFixed(2).replace(/0$/,'')+'×';
+  render();
+
+  $('#play').onclick = toggle;
+  $('#b10').onclick = () => seek(-10);
+  $('#f10').onclick = () => seek(10);
+  $('#bcc').onclick = () => { S.cc = !S.cc; save();
+    $("#bcc").classList.toggle("on", S.cc); $("#subs").classList.toggle("off", !S.cc);
+    $("#screen").classList.toggle("subson", S.cc); };
+  $('#btts').onclick = () => { S.tts = !S.tts; save();
+    $('#btts').classList.toggle('on', S.tts);
+    $('#btts').textContent = S.tts ? '🔊' : '🔇';
+    if (playing){ stopSpeech(); speakLine(); }
+    toast(S.tts ? 'Voices on' : 'Voices off — subtitles advance on a timer'); };
+  $('#brate').onclick = () => {
+    const steps = [0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+    S.rate = steps[(steps.indexOf(S.rate)+1) % steps.length] || 1;
+    $('#brate').textContent = S.rate.toFixed(2).replace(/0$/,'')+'×'; save(); tick();
+    if (playing){ stopSpeech(); speakLine(); }
+    toast('Speed '+S.rate+'×'); };
+  $('#bseg').onclick = () => { $('#strip').classList.toggle('off');
+    $('#bseg').classList.toggle('on', !$('#strip').classList.contains('off')); };
+  $('#bfs').onclick = () => { document.fullscreenElement ? document.exitFullscreen()
+    : document.documentElement.requestFullscreen().catch(()=>{}); };
+  $('#vT').onchange = e => { S.vT = e.target.value;
+    voiceT = voices.find(v => v.voiceURI === S.vT) || voiceT; save();
+    if (playing){ stopSpeech(); speakLine(); } };
+  $('#vS').onchange = e => { S.vS = e.target.value;
+    voiceS = voices.find(v => v.voiceURI === S.vS) || voiceS; save();
+    if (playing){ stopSpeech(); speakLine(); } };
+  $('#track').onclick = e => { const r = $('#track').getBoundingClientRect();
+    const f = Math.max(0, Math.min(1, (e.clientX - r.left)/r.width));
+    goLine(lineAt(f * TOTAL)); };
+
+  setInterval(() => { if (playing) tick(); }, 250);
+
+  document.addEventListener('keydown', e => {
+    if (!$('#gate').classList.contains('hide')){
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); $('#go').click(); }
+      return;
+    }
+    if (e.target.tagName === 'SELECT') return;
+    const k = e.key.toLowerCase();
+    if (e.key === ' '){ e.preventDefault(); toggle(); }
+    else if (e.key === 'ArrowRight'){ e.preventDefault(); seek(10); }
+    else if (e.key === 'ArrowLeft'){ e.preventDefault(); seek(-10); }
+    else if (e.key === 'ArrowDown'){ e.preventDefault(); goLine(S.i+1); }
+    else if (e.key === 'ArrowUp'){ e.preventDefault(); goLine(S.i-1); }
+    else if (k === 'c') $('#bcc').click();
+    else if (k === 'f') $('#bfs').click();
+    else if (k === 'm') $('#btts').click();
+    else if (k === 's') $('#bseg').click();
+  });
+  window.addEventListener('beforeunload', () => { try{speechSynthesis.cancel();}catch(e){} });
+}
+
+/* --- gate --- */
+if (S.i > 0){
+  const r = $('#resume'); r.hidden = false;
+  r.textContent = '↻ Resume — ' + SCRIPT[S.i].segName + ' (' + fmt(secsOf(SCRIPT[S.i].cw)) + ')';
+  r.onclick = () => { $('#gate').classList.add('hide'); play(); };
+}
+$('#go').onclick = () => { $('#gate').classList.add('hide'); if (S.i > 0) S.i = 0; play(); };
+
+if (window.speechSynthesis){
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+  [300, 900, 2000, 4000].forEach(ms => setTimeout(loadVoices, ms));
+}
+boot();
+</script>

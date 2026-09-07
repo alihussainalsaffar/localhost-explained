@@ -7,6 +7,14 @@ together with a **narrated walk-through of the whole thing** that runs in a brow
 
 **<https://alihussainalsaffar.github.io/localhost-explained/>**
 
+### ▶ Or watch the 24-minute animated podcast
+
+**<https://alihussainalsaffar.github.io/localhost-explained/podcast.html>**
+
+A student and a teacher talk through the project in about half an hour — two
+different voices, 18 fully animated scenes, subtitles, and no static slides.
+The short version if you do not have two and a half hours.
+
 Works on a phone, a tablet or a laptop. It reads itself aloud in English, and every
 word spoken is also written on screen, so you can read along with the sound off.
 
