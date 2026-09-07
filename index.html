@@ -613,8 +613,8 @@ D.modules = `<svg viewBox="0 0 820 330">${AR}
 const COURSE = [
 { t:"Before we start", beats:[
   { v:{k:"title", h:"This is the whole project, <em>end to end</em>.",
-      sub:"About two hours. First what you were asked to build and what you will be asked at the audit; then the whole thing running, command by command; then the concepts; then every file of code line by line; then the audit answers."},
-    say:"Welcome. This is a complete walk-through of your localhost project — an HTTP server written in Rust, running on one process, one thread, and one epoll instance. We start with the subject itself, read line by line, and then the audit sheet, so that you know what you were asked to build and what you will be asked about before anything else. Then we make the server run and drive every feature from the terminal. Then we go back to the very bottom: what a web server actually is, what HTTP looks like on the wire, and why a single thread can serve thousands of clients at once. Then we read the code, file by file, function by function. And at the end we return to the audit sheet with the answers, so that when someone asks you why there is only one epoll call, you will not be reciting a sentence you memorised. You will actually know." },
+      sub:"About two and a half hours. First a glossary of every technical word used here; then what you were asked to build and what you will be asked at the audit; then the whole thing running, command by command; then the concepts; then every file of code line by line; then the audit answers."},
+    say:"Welcome. This is a complete walk-through of your localhost project — an HTTP server written in Rust, running on one process, one thread, and one epoll instance. We start with a glossary — four short chapters defining every technical word this walk-through uses, so that nothing later depends on vocabulary you have not met. Then the subject itself, read line by line, and the audit sheet, so that you know what you were asked to build and what you will be asked about before anything else. Then we make the server run and drive every feature from the terminal. Then we go back to the very bottom: what a web server actually is, what HTTP looks like on the wire, and why a single thread can serve thousands of clients at once. Then we read the code, file by file, function by function. And at the end we return to the audit sheet with the answers, so that when someone asks you why there is only one epoll call, you will not be reciting a sentence you memorised. You will actually know." },
   { v:{k:"points", h:"How to use this player", items:[
       "<b>Space</b> plays and pauses. The narration reads every slide out loud and moves on by itself.",
       "The two <b>circular ⟲5 / ⟳5 buttons</b> either side of play jump <b>back and forward five seconds</b> — keys <b>J</b> and <b>L</b>, or <b>Shift</b> with an arrow. Missed a sentence? Tap ⟲5 and hear it again.",
@@ -629,6 +629,234 @@ const COURSE = [
       "Explain <b>why</b> each design choice was made, not just what the code does.",
       "Defend the awkward parts honestly — including the one place the code is not perfectly non-blocking."]},
     say:"Here is what you should walk away with. First, the ability to explain how an HTTP server works, from the TCP socket up to the response bytes, without hand-waving. Second, knowing the exact lines that answer every audit question, so you can point at the screen instead of searching. Third, and most importantly, understanding why each choice was made, not just what the code does. Auditors can tell the difference in about ten seconds. And finally, being able to defend the awkward parts honestly — including the one place in this codebase where the code is not perfectly non-blocking, which we will look at squarely rather than hoping nobody notices." }
+]},
+
+{ t:"Words: the internet and HTTP", beats:[
+  { v:{k:"title", h:"Before the subject, the <em>vocabulary</em>.",
+      sub:"Four short chapters defining every technical word this walk-through uses. You do not have to watch them in order — but if a word ever stops you later, it is defined here."},
+    say:"The next four chapters are a dictionary. Every technical word this walk-through uses, defined in plain English: the internet words, the operating system words, the Rust words, and the Python and command line words. If you already know most of them, skip ahead using the sidebar — nothing later depends on watching these in order. But if a word ever stops you further in, this is where it is defined, and you can jump straight back here. I have deliberately put them before the subject, because the subject itself is written in this vocabulary. It uses epoll, C-G-I, chunked and non-blocking in its very first page, and it is much easier to read once those words mean something." },
+  { v:{k:"table", h:"The basic cast", rows:[
+      ["client","the program that asks for something — a browser, curl, siege. It opens the connection."],
+      ["server","the program that waits for clients and answers them. That is what you built."],
+      ["protocol","an agreed format for messages, so two programs written by strangers can talk. HTTP is one."],
+      ["TCP","the delivery service underneath HTTP. Guarantees your bytes arrive, in order, or the connection breaks."],
+      ["IP address","the number that identifies a machine on a network, e.g. <code>127.0.0.1</code>."],
+      ["port","a number from 0–65535 that picks <b>which program</b> on that machine. Web servers usually 80, or 8080 in development."],
+      ["localhost / 127.0.0.1","'this same machine'. Traffic never leaves your computer — the loopback address."],
+      ["DNS","the phone book that turns a name like <code>example.com</code> into an IP address."],
+      ["socket","one end of a network connection, as your program sees it. You read and write it like a file."]]},
+    say:"Start with the cast. A client is the program that asks for something and opens the connection — a browser, curl, siege. A server waits for clients and answers them; that is what you built. A protocol is an agreed message format so two programs written by strangers can talk, and HTTP is one of them. T-C-P is the delivery service underneath HTTP: it guarantees your bytes arrive, in order, or else the connection breaks — you never get half a message silently. An I-P address identifies a machine. A port is a number from zero to sixty-five thousand five hundred and thirty-five that picks which program on that machine, which is why two servers can run on one computer. Localhost, or one two seven dot zero dot zero dot one, means this same machine — traffic never leaves your computer, which is why the project is called localhost. D-N-S is the phone book turning names into addresses. And a socket is one end of a connection as your program sees it — you read and write it like a file." },
+  { v:{k:"dia", d:"urlparts", cap:"Every part of a URL, and which part of the server cares about it."},
+    say:"Now a URL, taken apart. The scheme, h-t-t-p, says which protocol. The host is the machine name or address. After a colon comes the port, and if you leave it out the browser assumes eighty for h-t-t-p. Then the path, which is what the server routes on — this is the part that decides which file or which handler answers. Then, after a question mark, the query string: key and value pairs, used by C-G-I scripts and forms. And after a hash, the fragment — worth knowing because the fragment is never sent to the server at all. It is purely for the browser to scroll to a section. If you have ever wondered why your server never sees the part after the hash, that is why." },
+  { v:{k:"table", h:"The parts of an HTTP message", rows:[
+      ["request line","the first line a client sends: <code>GET /index.html HTTP/1.1</code>"],
+      ["method","the verb: GET fetch, POST send data, DELETE remove, HEAD headers only, PUT/PATCH not used here."],
+      ["target / path","what is being asked for — <code>/index.html</code>"],
+      ["status line","the first line the server sends back: <code>HTTP/1.1 200 OK</code>"],
+      ["status code","the three-digit result. 2xx worked, 3xx go elsewhere, 4xx your fault, 5xx my fault."],
+      ["reason phrase","the human words after the code — <code>OK</code>, <code>Not Found</code>. Decorative; the number is what counts."],
+      ["header","one <code>Name: value</code> line of metadata. Many per message."],
+      ["body","the actual payload — the HTML, the image, the uploaded file. Optional."],
+      ["CRLF","carriage return + line feed, bytes 13 and 10. Ends every line in HTTP."],
+      ["the blank line","one empty CRLF line meaning 'headers finished'. In bytes: <code>\\r\\n\\r\\n</code>."]]},
+    say:"The parts of an HTTP message. The request line is the first line the client sends: a method, a target and a version. The method is the verb — GET to fetch, POST to send data, DELETE to remove, HEAD for headers with no body. The target, or path, is what is being asked for. Coming back, the status line carries the version, a status code and a reason phrase. The status code is the three digit result, and the first digit is the whole story: two hundreds worked, three hundreds mean go somewhere else, four hundreds mean the client did something wrong, five hundreds mean the server did. The reason phrase — OK, Not Found — is decorative; only the number is acted on. A header is one name-colon-value line of metadata, and there can be many. The body is the actual payload. C-R-L-F is carriage return plus line feed, bytes thirteen and ten, and it ends every line in HTTP. And the blank line is a single empty line meaning the headers have finished — four bytes in a row, and the single most important marker in the whole protocol." },
+  { v:{k:"table", h:"The headers you will actually meet in this project", rows:[
+      ["Content-Length","how many bytes of body follow. Without it the receiver cannot tell where the message ends."],
+      ["Content-Type","what the body <b>is</b> — <code>text/html</code>, <code>image/png</code>. Also called the MIME type."],
+      ["Host","which site the client wants. This is what makes virtual hosting possible."],
+      ["Connection","<code>keep-alive</code> to reuse the socket for another request, <code>close</code> to hang up."],
+      ["Transfer-Encoding: chunked","'I do not know the total size, I will send it in labelled pieces'."],
+      ["Set-Cookie / Cookie","server hands the client a value; the client hands it back on every later request."],
+      ["Location","with a 3xx status: the URL to go to instead."],
+      ["Allow","with a 405: the methods this route <i>does</i> accept."],
+      ["Date / Server","when the answer was made, and what software made it."],
+      ["User-Agent","what the client claims to be. This server does not act on it."]]},
+    say:"The headers you will actually meet. Content-Length is how many bytes of body follow, and without it the receiver cannot tell where one message ends and the next begins. Content-Type is what the body is — text slash h-t-m-l, image slash p-n-g — also called the MIME type, and it is how the browser knows whether to render or download. Host says which site the client wants, and it is the header that makes virtual hosting possible. Connection is either keep-alive, meaning reuse this socket for another request, or close, meaning hang up afterwards. Transfer-Encoding chunked means I do not know the total size so I will send it in labelled pieces. Set-Cookie and Cookie are the pair that make sessions work: the server hands the client a value, the client hands it back every time afterwards. Location goes with a three hundred status and says where to go instead. Allow goes with a four oh five and lists the methods that are accepted. Date and Server say when and by what. And User-Agent is what the client claims to be — this server reads it but does not act on it." },
+  { v:{k:"table", h:"The bigger ideas", rows:[
+      ["static content","a file read off disk and sent as-is. Fast, simple."],
+      ["dynamic content","output generated per request by running a program. Here, that means CGI."],
+      ["CGI","Common Gateway Interface. The server runs a program and sends whatever it prints. From 1993, and still the simplest way to make a page dynamic."],
+      ["virtual host","several sites on one IP and port, told apart by the <code>Host</code> header."],
+      ["route","a rule mapping a URL prefix to a directory and a set of permissions."],
+      ["document root","the folder a route serves from. <code>/files/a.txt</code> under root <code>www/files</code> is <code>www/files/a.txt</code>."],
+      ["index file","the file to serve when the URL is a directory — usually <code>index.html</code>."],
+      ["directory listing","an auto-generated page listing a folder's contents when there is no index file."],
+      ["redirect","a 3xx answer telling the client 'ask for this other URL instead'."],
+      ["session","remembering something about one client across separate requests, keyed by a cookie."],
+      ["multipart/form-data","the format a browser uses to POST files — sections separated by a random boundary string."],
+      ["path traversal","an attack using <code>../</code> to escape the document root and read files it should not."]]},
+    say:"And the bigger ideas. Static content is a file read off disk and sent as-is. Dynamic content is generated per request by running a program, and in this project that means C-G-I — the Common Gateway Interface, which dates from nineteen ninety-three and is still the simplest way to make a page dynamic: the server runs a program and sends whatever the program prints. A virtual host is several sites on one address and port, told apart by the Host header. A route is a rule mapping a URL prefix to a directory and a set of permissions. The document root is the folder that route serves from. An index file is what to serve when the URL names a directory. A directory listing is the auto-generated page you get when there is no index file. A redirect is a three hundred answer meaning ask for this other URL instead. A session is remembering something about one client across separate requests, keyed by a cookie. Multipart form-data is the format browsers use to POST files, with sections separated by a random boundary string. And path traversal is the attack that uses dot dot slash to escape the document root — the one your server must refuse." }
+]},
+
+{ t:"Words: the operating system", beats:[
+  { v:{k:"table", h:"The machine", rows:[
+      ["kernel","the core of the operating system. It owns the hardware; your program must ask it for everything."],
+      ["user space","where your program runs. It cannot touch hardware directly — by design."],
+      ["system call","the way to ask the kernel for something: <code>read</code>, <code>write</code>, <code>accept</code>, <code>epoll_wait</code>. The border crossing."],
+      ["process","one running program, with its own memory. Your server is one process."],
+      ["thread","one line of execution inside a process. Several threads share the same memory. This project uses <b>one</b>."],
+      ["PID","the number identifying a process. <code>pgrep</code> finds it, <code>kill</code> stops it."],
+      ["RSS","Resident Set Size — how much real memory a process is using right now. What you watch for leaks."],
+      ["environment variable","a name/value pair handed to a program when it starts. How the server passes info to a CGI script."],
+      ["exit code","the number a program returns when it ends. <b>0 means success</b>, anything else is a failure."],
+      ["signal","an interruption sent to a process — Ctrl-C sends SIGINT, <code>kill</code> sends SIGTERM."]]},
+    say:"Operating system words, starting with the machine. The kernel is the core of the operating system: it owns the hardware, and your program has to ask it for everything. Your program runs in user space and cannot touch hardware directly, by design. The way to ask the kernel for something is a system call — read, write, accept, epoll wait — and that is the border crossing between your code and the kernel. A process is one running program with its own memory; your server is a single process. A thread is one line of execution inside a process, and several threads share memory — this project uses exactly one. A P-I-D is the number identifying a process. R-S-S, Resident Set Size, is how much real memory a process is using right now, and it is the number you watch when checking for leaks. An environment variable is a name and value handed to a program when it starts, which is how the server passes request information to a C-G-I script. An exit code is the number a program returns when it ends, where zero means success and anything else means failure. And a signal is an interruption — control-C sends one called SIGINT." },
+  { v:{k:"dia", d:"fdesc", cap:"A file descriptor is just an index. That is why a socket can be read like a file."},
+    say:"Now the single most useful idea in Unix, and it explains a lot of this project. A file descriptor is just a small integer — an index into a table the kernel keeps for your process. Slot zero is standard input, slot one standard output, slot two standard error, always. Everything you open after that gets the next free slot. And here is the point: the thing in the slot might be an open file, or a network socket, or a pipe to another program, or the epoll object itself — and your program does not care, because it uses the same read and write calls on all of them. That is why a socket can be read exactly like a file, why epoll can watch sockets and pipes together, and why closing a socket is the same operation as closing a file. One idea, reused everywhere." },
+  { v:{k:"table", h:"Files, pipes and processes", rows:[
+      ["file descriptor (fd)","a small integer naming something you have open — a file, a socket, a pipe."],
+      ["stdin / stdout / stderr","fds 0, 1 and 2: where a program reads input, writes output, and writes errors."],
+      ["pipe","a one-way channel between two programs. The server feeds the CGI script through one."],
+      ["buffer","a chunk of memory holding bytes on their way somewhere. Both the kernel and this server keep buffers."],
+      ["EOF","End Of File — no more data will ever come. On a pipe, caused by the writer <b>closing</b> it."],
+      ["fork","make a copy of the current process. The only way to start another program on Unix."],
+      ["exec","replace the current program with a different one. <code>fork</code> + <code>exec</code> = 'run this program'."],
+      ["cwd","current working directory — where relative paths are resolved from. The CGI runs with its own."],
+      ["chmod / permissions","who may read, write or execute a file. A 500 on upload usually means a permission problem."]]},
+    say:"Files, pipes and processes. A file descriptor, usually written f-d, is that small integer naming something you have open. Standard input, output and error are file descriptors zero, one and two — where a program reads its input and writes its output and its errors. A pipe is a one-way channel between two programs, and the server feeds the C-G-I script's body through one. A buffer is a chunk of memory holding bytes on their way somewhere; both the kernel and this server keep buffers. E-O-F, end of file, means no more data will ever come — and on a pipe it is caused by the writer closing it, which is exactly how the server tells a C-G-I script that the body has finished. Fork makes a copy of the current process, and exec replaces the current program with a different one; fork plus exec is how Unix runs any program at all. C-w-d is the current working directory, which is where relative paths resolve from. And permissions decide who may read, write or execute a file — a five hundred on upload is usually a permission problem." },
+  { v:{k:"table", h:"Sockets and the network stack", rows:[
+      ["bind","claim an address and port for a socket. Fails with 'Address already in use' if taken."],
+      ["listen","tell the kernel this socket should start accepting connections."],
+      ["accept","take one waiting connection off the queue; you get a <b>new</b> socket for that client."],
+      ["backlog","the queue of connections that have arrived but not yet been accepted."],
+      ["handshake","the three-message exchange that opens a TCP connection. The kernel does it for you."],
+      ["loopback","the fake network interface for 127.0.0.1. Fast, and never leaves the machine."],
+      ["TIME_WAIT","a closed connection's socket lingering for a couple of minutes on the <b>client</b> side. Normal — not a leak."],
+      ["EWOULDBLOCK","'I would have had to wait, so I did nothing.' What a non-blocking call returns when there is no data."],
+      ["EINTR","'a signal interrupted me.' Not an error — just call again. Ignoring this crashes servers."],
+      ["RST / connection reset","an abrupt close. The other end gave up rather than shutting down politely."]]},
+    say:"Sockets and the network stack. Bind claims an address and port for a socket, and fails with address already in use if something else has it. Listen tells the kernel this socket should start accepting connections. Accept takes one waiting connection off the queue and gives you a brand new socket for that specific client. The backlog is the queue of connections that have arrived but not yet been accepted. The handshake is the three-message exchange that opens a T-C-P connection, and the kernel does it for you. Loopback is the fake network interface behind one two seven dot zero dot zero dot one. TIME-WAIT is a closed connection's socket lingering for a couple of minutes on the client side — completely normal, and the thing that makes people think they have a connection leak when they do not. E-WOULD-BLOCK means I would have had to wait, so I did nothing, which is what a non-blocking call returns when there is no data. E-INTR means a signal interrupted me, which is not an error at all — you just call again, and ignoring that fact is a classic way to crash a server. And a reset is an abrupt close, where the other end gave up rather than shutting down politely." },
+  { v:{k:"table", h:"Blocking, multiplexing, and the event loop", rows:[
+      ["blocking","a call that does not return until it can finish. <code>read</code> on an empty socket parks your whole thread."],
+      ["non-blocking","a socket set so calls return immediately with EWOULDBLOCK instead of waiting."],
+      ["busy loop","asking 'ready yet?' over and over. Non-blocking without multiplexing = 100% CPU doing nothing."],
+      ["I/O multiplexing","handing the kernel many sockets and asking 'which of these are ready?' — sleep until one is."],
+      ["select / poll","the older, portable ways to do that. Both re-scan the whole list on every call."],
+      ["epoll","the Linux way. Register once; the kernel keeps the list and returns <b>only</b> what is ready."],
+      ["kqueue / IOCP","the same idea on BSD/macOS, and on Windows."],
+      ["readiness","'a read or write on this socket will not block right now'. That is all epoll tells you."],
+      ["EPOLLIN / EPOLLOUT","readable (data waiting, or a connection to accept) / writable (room in the send buffer)."],
+      ["level-triggered","keeps reporting a socket while it is still ready. The default, and what lets us read just once."],
+      ["edge-triggered","reports only on change; forces you to drain in a loop. Not used here."],
+      ["event loop","the pattern: wait for readiness, handle what is ready, repeat forever. The heart of this project."]]},
+    say:"And the words that this whole project is built on. Blocking means a call that does not return until it can finish — read on an empty socket parks your entire thread. Non-blocking means the socket is set so calls return immediately with would-block instead of waiting. A busy loop is asking ready yet, over and over, which is what non-blocking alone gives you: one hundred percent CPU doing nothing useful. I O multiplexing is handing the kernel many sockets at once and asking which of these are ready, then sleeping until one is. Select and poll are the older portable ways, and both re-scan the whole list on every call. Epoll is the Linux way: you register once, the kernel keeps the list, and each call returns only what is actually ready. Kqueue and I-O-C-P are the same idea on B-S-D and on Windows. Readiness means a read or write on this socket will not block right now — that is genuinely all epoll tells you. EPOLLIN means readable, EPOLLOUT means writable. Level-triggered means it keeps reporting a socket for as long as it is still ready, which is the default and is exactly what lets us safely read only once per event. Edge-triggered reports only on change and forces you to drain in a loop, and is not used here. And an event loop is the pattern itself: wait for readiness, handle what is ready, repeat forever." }
+]},
+
+{ t:"Words: Rust", beats:[
+  { v:{k:"table", h:"The toolchain", rows:[
+      ["Rust","a compiled language with no garbage collector, whose compiler refuses to build code with whole classes of memory bugs."],
+      ["rustc / cargo","the compiler, and the tool you actually use — cargo builds, tests and manages dependencies."],
+      ["crate","a Rust package or library. <code>libc</code> is a crate. Roughly what npm calls a package."],
+      ["Cargo.toml","the project file: name, version, dependencies. This project's dependency list is one line."],
+      ["Cargo.lock","the exact versions actually used, so a build is reproducible."],
+      ["<code>cargo build --release</code>","compile optimised. The default (debug) build is several times slower."],
+      ["<code>target/</code>","where build output goes. Never committed — it is in <code>.gitignore</code>."],
+      ["module / <code>mod</code>","a namespace. <code>mod http;</code> means 'compile src/http.rs as part of this program'."],
+      ["<code>use</code>","bring a name into scope so you can write <code>HashMap</code> instead of <code>std::collections::HashMap</code>."],
+      ["<code>std</code>","the standard library — always available, no dependency needed."]]},
+    say:"Rust words, starting with the toolchain. Rust is a compiled language with no garbage collector, whose compiler refuses to build code containing whole classes of memory bug. Rust-c is the compiler, but cargo is what you actually type: it builds, tests and manages dependencies. A crate is a Rust package or library — libc is a crate, and it is roughly what other ecosystems call a package. Cargo dot toml is the project file with the name, version and dependencies, and in this project the dependency list is one line long. Cargo dot lock records the exact versions actually used so builds are reproducible. Cargo build dash dash release compiles optimised, and matters because the default debug build is several times slower. The target folder is where build output goes and is never committed. A module, declared with mod, is a namespace — mod http means compile source slash http dot r-s as part of this program. Use brings a name into scope. And s-t-d is the standard library, always available with no dependency needed." },
+  { v:{k:"table", h:"Types and data", rows:[
+      ["<code>struct</code>","a named bundle of fields. <code>Connection</code> is a struct holding a socket and its buffers."],
+      ["<code>enum</code>","a value that is one of several shapes — and in Rust each shape can carry its own data."],
+      ["<code>impl</code>","a block of functions attached to a type. <code>impl Epoll { fn wait(...) }</code>"],
+      ["method","a function called on a value: <code>request.keep_alive()</code>. Its first parameter is <code>self</code>."],
+      ["<code>trait</code>","a set of methods a type promises to provide — like an interface. <code>Drop</code> is one."],
+      ["<code>Vec&lt;T&gt;</code>","a growable array of T. <code>Vec&lt;u8&gt;</code> is a growable list of bytes — used for every buffer here."],
+      ["<code>u8</code> / <code>u16</code> / <code>usize</code>","unsigned integers: one byte, two bytes, and 'big enough to index memory'."],
+      ["<code>String</code> vs <code>&amp;str</code>","an owned, growable string vs a borrowed view of one. Both are always valid UTF-8."],
+      ["slice <code>&amp;[u8]</code>","a borrowed window onto part of an array, without copying it."],
+      ["<code>HashMap&lt;K,V&gt;</code>","a lookup table. Headers are stored in one, keyed by lowercased name."],
+      ["<code>Option&lt;T&gt;</code>","either <code>Some(value)</code> or <code>None</code>. Rust's replacement for null — you cannot forget to check."],
+      ["<code>Result&lt;T,E&gt;</code>","either <code>Ok(value)</code> or <code>Err(error)</code>. How every fallible operation reports failure."]]},
+    say:"Types and data. A struct is a named bundle of fields — Connection is a struct holding a socket and its buffers. An enum is a value that is one of several shapes, and the Rust twist is that each shape can carry its own data, which is what makes the ParseStatus enum in this project so neat. An impl block attaches functions to a type. A method is a function called on a value, whose first parameter is self. A trait is a set of methods a type promises to provide, like an interface in other languages. Vec of T is a growable array, and Vec of u8 — a growable list of bytes — is every buffer in this project. U8, u16 and usize are unsigned integers of one byte, two bytes, and big enough to index memory. String versus ampersand s-t-r is owned and growable versus a borrowed view, and both are always valid U-T-F eight, which is why raw uploaded bytes are never turned into strings here. A slice is a borrowed window onto part of an array without copying it. A HashMap is a lookup table, and headers are stored in one keyed by lowercased name. Option is either Some value or None, and it is Rust's replacement for null — the compiler will not let you forget to check. And Result is either Ok or Err, which is how every operation that can fail reports it." },
+  { v:{k:"table", h:"Ownership — the part that is unlike other languages", rows:[
+      ["ownership","every value has exactly one owner. When the owner goes out of scope, the value is freed. Automatically."],
+      ["move","assigning or passing a value transfers ownership. The old name can no longer be used."],
+      ["borrow / <code>&amp;</code>","lend a value without giving it away. Many readers allowed at once."],
+      ["<code>&amp;mut</code>","lend it for modification. Exactly <b>one</b> at a time, and no readers meanwhile."],
+      ["<code>mut</code>","this binding may be changed. Without it, everything is immutable by default."],
+      ["lifetime","how long a borrow is valid. Usually inferred; the compiler rejects a reference that outlives its data."],
+      ["<code>clone()</code>","make an independent copy, when you genuinely need two owners."],
+      ["<code>Drop</code> / RAII","code that runs automatically when a value dies. Closing the epoll fd, and freeing every connection buffer."],
+      ["'no memory leak'","a direct consequence: remove a Connection from the map and its socket and buffers are freed. Nothing to forget."]]},
+    say:"Now ownership, which is the part of Rust that is unlike most other languages, and it is worth understanding because it is the reason this server does not leak. Every value has exactly one owner, and when the owner goes out of scope the value is freed — automatically, with no garbage collector and no free call. Assigning or passing a value moves ownership, and the old name can no longer be used. Borrowing, written with an ampersand, lends a value without giving it away, and many readers are allowed at once. Ampersand mut lends it for modification, and there may be exactly one of those at a time with no readers meanwhile — that rule is what prevents data races. The mut keyword marks a binding as changeable, because everything is immutable by default. A lifetime is how long a borrow stays valid, usually inferred, and the compiler rejects a reference that would outlive its data. Clone makes an independent copy when you genuinely need two owners. Drop is code that runs automatically when a value dies, which is how the epoll descriptor gets closed. And that last row is the punchline: removing a Connection from the map frees its socket and both its buffers, with nothing to remember and nothing to forget. When the audit asks how you know there is no memory leak, this is the mechanism." },
+  { v:{k:"table", h:"Control flow, and the words in this codebase", rows:[
+      ["<code>match</code>","branch on a value's shape, and the compiler forces you to handle every case."],
+      ["<code>if let</code> / <code>let ... else</code>","shorthand for matching one case; <code>let ... else</code> handles the failure and leaves early."],
+      ["<code>?</code>","'if this is an error, return it immediately'. Turns error plumbing into one character."],
+      ["closure <code>|x| ...</code>","an inline anonymous function, often passed to <code>map</code> or <code>filter</code>."],
+      ["iterator","a lazy sequence. <code>.iter().filter(...).max_by_key(...)</code> — used for route matching."],
+      ["macro <code>name!</code>","code that writes code. <code>println!</code>, <code>format!</code>, <code>vec!</code> — the <code>!</code> is how you spot one."],
+      ["<code>unsafe</code>","'I take responsibility for this' — needed for raw C calls like <code>epoll_ctl</code>. Used in one file here."],
+      ["panic","an unrecoverable error that unwinds the thread — an out-of-range index, an <code>unwrap</code> on <code>None</code>."],
+      ["<code>catch_unwind</code>","catch a panic instead of dying. This is what makes 'it never crashes' true."],
+      ["<code>#[cfg(test)]</code>","compile this only when testing. That is where the 27 unit tests live, inside the same files."]]},
+    say:"And the control flow words you will see in the code. Match branches on a value's shape and the compiler forces you to handle every case, which is why the four-way parse result is impossible to mishandle. If-let is shorthand for matching one case, and let-else handles the failure and leaves early. The question mark operator means if this is an error, return it immediately, turning error plumbing into a single character. A closure, written with vertical bars, is an inline anonymous function. An iterator is a lazy sequence, and the chain of iter, filter and max-by-key is how route matching picks the longest prefix. A macro is code that writes code, and the exclamation mark is how you spot one — println, format, vec. Unsafe means I take responsibility for this, and it is needed for raw C calls like epoll control; in this project it appears in one file only. A panic is an unrecoverable error that unwinds the thread, such as an out-of-range index or an unwrap on None. Catch-unwind catches a panic instead of dying, and that single function is what makes the claim it never crashes actually true. And the c-f-g test attribute compiles code only when testing, which is where the twenty-seven unit tests live, inside the same files as the code they test." }
+]},
+
+{ t:"Words: Python, the shell and the tools", beats:[
+  { v:{k:"table", h:"Python — used only for the tests and the CGI demos", rows:[
+      ["Python","an interpreted language. No compile step: <code>python3 file.py</code> runs it directly."],
+      ["interpreter","the program that runs the script — <code>python3</code>. The server spawns it for CGI."],
+      ["script","a file of code meant to be run top to bottom, rather than built into a binary."],
+      ["shebang <code>#!</code>","the first line of a script naming its interpreter, e.g. <code>#!/usr/bin/env python3</code>."],
+      ["<code>import</code> / module","load another file of Python. <code>import socket</code> gives you raw network access."],
+      ["<code>socket</code>","the standard module for raw TCP. Used by the tests to send bytes no HTTP library would send."],
+      ["<code>subprocess</code>","start another program from Python. The test suite uses it to start and stop the server."],
+      ["<code>threading</code>","run several things at once inside one Python process. Used to make concurrent load."],
+      ["bytes vs str","<code>b\"abc\"</code> is raw bytes, <code>\"abc\"</code> is text. Sockets speak bytes — mixing them up corrupts uploads."],
+      ["f-string","<code>f\"port {n}\"</code> — a string with values substituted in."]]},
+    say:"Python words, and note Python is used here only for the tests and the two C-G-I demo scripts — the server itself is pure Rust. Python is an interpreted language with no compile step: python three followed by a filename runs it directly. The interpreter is the program that runs the script, and it is what the server spawns for C-G-I. A script is a file of code meant to run top to bottom rather than be built into a binary. A shebang is the first line naming the interpreter. Import loads another file of Python, and import socket gives you raw network access. The socket module is what the tests use to send bytes that no HTTP library would ever send, like the deliberately malformed request. Subprocess starts another program from Python, which is how the test suite starts and stops the server itself. Threading runs several things at once inside one Python process, which is how the concurrent load is generated. Bytes versus s-t-r matters more than it looks: b quote a-b-c is raw bytes and plain quote a-b-c is text, sockets speak bytes, and mixing them up is exactly how you corrupt a binary upload. And an f-string is a string with values substituted into it." },
+  { v:{k:"table", h:"The shell", rows:[
+      ["shell / bash","the program that reads your typed commands and runs them."],
+      ["terminal","the window the shell runs in."],
+      ["<code>$</code>","the prompt. In these slides, a line starting with <code>$</code> is what you type; the rest is output."],
+      ["argument / flag","words after a command. <code>-i</code> is a short flag, <code>--resolve</code> a long one."],
+      ["<code>|</code> pipe","send one command's output into the next command's input."],
+      ["<code>&gt;</code> / <code>&gt;&gt;</code>","redirect output into a file (overwrite / append). <code>&lt;</code> reads a file as input."],
+      ["<code>&amp;</code>","run in the background so you get your prompt back."],
+      ["<code>$?</code>","the exit code of the last command. <code>0</code> = success."],
+      ["<code>$(...)</code>","run a command and paste its output right there."],
+      ["<code>/dev/null</code>","the bin. Anything written here disappears. <code>/dev/urandom</code> gives endless random bytes."],
+      ["absolute vs relative path","<code>/home/you/x</code> starts from the root; <code>www/site</code> starts from where you are."],
+      ["<code>~</code>","your home directory."],
+      ["WSL / <code>/mnt/c</code>","Linux running inside Windows; <code>/mnt/c</code> is your Windows C: drive seen from Linux — and it is slow."]]},
+    say:"The shell. Bash is the program that reads your typed commands and runs them, and the terminal is the window it lives in. The dollar sign is the prompt — throughout these slides, a line starting with a dollar is what you type and everything else is output. Arguments and flags are the words after a command, where a single dash is a short flag and a double dash is a long one. The vertical bar is a pipe, sending one command's output into the next command's input. Greater-than redirects output into a file. An ampersand at the end runs the command in the background so you get your prompt back. Dollar question-mark is the exit code of the last command, where zero means success. Dollar parenthesis runs a command and pastes its output right there. Slash dev slash null is the bin, where anything written disappears, and slash dev slash urandom gives you endless random bytes, which is how the upload test makes its test file. An absolute path starts from the root and a relative one starts from where you are. Tilde is your home directory. And W-S-L is Linux running inside Windows, where slash m-n-t slash c is your Windows C drive seen from Linux — and, as we keep saying, it is slow." },
+  { v:{k:"table", h:"The commands this project uses", rows:[
+      ["<code>curl</code>","make an HTTP request from the command line. The main tool for driving the server."],
+      ["<code>nc</code> (netcat)","open a raw TCP connection and send whatever bytes you like. No HTTP knowledge at all."],
+      ["<code>printf</code>","print text with real escape characters — the way to type <code>\\r\\n</code> exactly."],
+      ["<code>siege</code>","a load tester. <code>-b</code> means no delay between requests. Only ever point it at your own server."],
+      ["<code>grep</code>","find lines matching a pattern. <code>-c</code> counts, <code>-i</code> ignores case, <code>-o</code> prints just the match."],
+      ["<code>sed</code>","edit a stream of text. <code>sed -n '10,20p'</code> prints lines 10 to 20 of a file."],
+      ["<code>ss</code>","show sockets. <code>-t</code> TCP, <code>-l</code> listening, <code>-n</code> numeric, <code>-a</code> all."],
+      ["<code>top</code>","live view of processes and their memory. <code>-p PID</code> watches just one."],
+      ["<code>pgrep</code> / <code>pkill</code>","find / kill processes by name. <code>-f</code> matches the whole command line."],
+      ["<code>cmp</code>","compare two files byte by byte. Silence means identical — that is the upload proof."],
+      ["<code>head -c N</code>","take the first N bytes. <code>tr</code> translates characters, e.g. zeros into x's."],
+      ["<code>tree</code> / <code>ls -la</code>","show a directory as a tree / list it with sizes and permissions."]]},
+    say:"The commands. Curl makes an HTTP request from the command line and is the main tool for driving the server. Netcat opens a raw T-C-P connection and sends whatever bytes you like, with no HTTP knowledge at all — which is exactly why it can send an invalid request. Printf prints text with real escape characters, and is the way to type a carriage return and line feed exactly. Siege is the load tester, where dash b means no delay between requests, and the subject warns you to point it only at your own server. Grep finds lines matching a pattern. Sed edits a stream of text, and sed dash n with a line range prints just those lines of a file, which is handy for showing a function during an audit. S-s shows sockets. Top is the live view of processes and their memory. P-grep and p-kill find and kill processes by name, and dash f matches against the whole command line. C-m-p compares two files byte by byte and says nothing at all when they match, which is the upload proof. Head dash c takes the first N bytes and t-r translates characters, which together is how the slides build a body of exactly two thousand x characters. And tree shows a directory as a tree." },
+  { v:{k:"table", h:"The curl flags used in this walk-through", rows:[
+      ["<code>-i</code>","include the response headers in the output. The most useful flag here."],
+      ["<code>-I</code>","send a HEAD request — headers only, no body."],
+      ["<code>-s</code>","silent: no progress meter."],
+      ["<code>-o /dev/null</code>","throw the body away — when you only care about the status."],
+      ["<code>-w '%{http_code}'</code>","print just the thing you asked for after the request. Great for scripting checks."],
+      ["<code>-X DELETE</code>","use this method instead of GET."],
+      ["<code>-d 'text'</code>","send this as a POST body (and set <code>Content-Type</code> to form-encoded)."],
+      ["<code>--data-binary @file</code>","send a file's raw bytes as the body, unmodified."],
+      ["<code>-F 'file=@path'</code>","send a real <code>multipart/form-data</code> upload, exactly like a browser form."],
+      ["<code>-H 'Name: value'</code>","add a request header — how the chunked test is done."],
+      ["<code>-b 'SID=...'</code>","send a cookie."],
+      ["<code>--resolve host:port:IP</code>","pretend this hostname resolves to this IP. How virtual hosts are tested without DNS."]]},
+    say:"And finally the curl flags, because half of driving this server is knowing four of them. Dash i includes the response headers in the output and is the single most useful flag here. Capital dash I sends a HEAD request, headers only. Dash s is silent, suppressing the progress meter. Dash o slash dev slash null throws the body away when you only care about the status. Dash w prints just the thing you asked for after the request, which is how the slides show a bare status code. Dash capital X sets the method. Dash d sends a POST body. Dash dash data dash binary with an at sign sends a file's raw bytes unmodified. Dash capital F sends a real multipart form-data upload, exactly like a browser form would. Dash capital H adds a request header, which is how the chunked test is performed. Dash b sends a cookie. And dash dash resolve pretends a hostname resolves to a given I-P, which is how virtual hosts are tested without touching D-N-S — and it is the exact command the audit sheet suggests." },
+  { v:{k:"points", h:"How to use this glossary from here on", items:[
+      "You are <b>not</b> expected to have absorbed all of that. It is a reference.",
+      "When a word stops you later, press <b>S</b>, jump back to whichever of these four chapters it belongs to, then jump forward again.",
+      "The four chapters are: <b>internet and HTTP</b> · <b>the operating system</b> · <b>Rust</b> · <b>Python, the shell and the tools</b>.",
+      "If you only memorise one thing: <b>a file descriptor is a small integer, and sockets, files and pipes are all read and written the same way</b>. Half of this project follows from that.",
+      "Right — now we know the words. Next: what the subject actually asked for."]},
+    say:"And that is the vocabulary. You are absolutely not expected to have absorbed all of that in one pass — it is a reference, and the point is that it exists. When a word stops you later on, press S for the sidebar, jump back to whichever of these four chapters it belongs to, and then jump forward again to where you were. The four are: the internet and HTTP, the operating system, Rust, and Python with the shell and the tools. If you only take one idea away, take this one: a file descriptor is just a small integer, and sockets, files and pipes are all read and written in exactly the same way. Half of this project follows from that single fact. Right. Now that we have the words, let us look at what the subject actually asked you to build." }
 ]},
 
 { t:"The subject, requirement by requirement", beats:[
@@ -2794,6 +3022,91 @@ D.auditmap = `<svg viewBox="0 0 820 400">${AR}
 <text x="36" y="384" class="dtx">7. General — the two bonuses</text>
 <rect x="474" y="362" width="326" height="34" rx="8" class="dbox"/>
 <text x="490" y="384" class="dtx-s">only counts once everything above works</text>
+</svg>`;
+
+D.urlparts = `<svg viewBox="0 0 820 360">${AR}
+<rect x="20" y="46" width="780" height="52" rx="9" class="dbox"/>
+<text x="36" y="79" class="dtx-m" font-size="15" fill="#ff7bd5">http://</text>
+<text x="112" y="79" class="dtx-m" font-size="15" fill="#7ee787">127.0.0.1</text>
+<text x="212" y="79" class="dtx-m" font-size="15" fill="#8fa3ba">:</text>
+<text x="222" y="79" class="dtx-m" font-size="15" fill="#ffcb6b">8080</text>
+<text x="272" y="79" class="dtx-m" font-size="15" fill="#4cc2ff">/cgi/hello.py</text>
+<text x="412" y="79" class="dtx-m" font-size="15" fill="#8fa3ba">?</text>
+<text x="424" y="79" class="dtx-m" font-size="15" fill="#c9a2ff">name=auditor</text>
+<text x="556" y="79" class="dtx-m" font-size="15" fill="#8fa3ba">#</text>
+<text x="568" y="79" class="dtx-m" font-size="15" fill="#5a6b80">section2</text>
+<path d="M60 104 L60 128" class="dar"/>
+<text x="36" y="146" class="dtx-s" fill="#ff7bd5">scheme</text>
+<text x="36" y="164" class="dtx-s">which protocol</text>
+<path d="M150 104 L150 128" class="dar"/>
+<text x="112" y="146" class="dtx-s" fill="#7ee787">host</text>
+<text x="112" y="164" class="dtx-s">which machine</text>
+<path d="M240 104 L240 128" class="dar"/>
+<text x="212" y="146" class="dtx-s" fill="#ffcb6b">port</text>
+<text x="212" y="164" class="dtx-s">which program</text>
+<text x="212" y="182" class="dtx-s">(80 if omitted)</text>
+<path d="M330 104 L330 128" class="dar-a"/>
+<text x="292" y="146" class="dtx-s" fill="#4cc2ff">path</text>
+<text x="292" y="164" class="dtx-s">what you want —</text>
+<text x="292" y="182" class="dtx-s">the server routes on this</text>
+<path d="M480 104 L480 128" class="dar"/>
+<text x="440" y="146" class="dtx-s" fill="#c9a2ff">query string</text>
+<text x="440" y="164" class="dtx-s">key=value pairs,</text>
+<text x="440" y="182" class="dtx-s">read by CGI scripts</text>
+<path d="M600 104 L600 128" class="dar-r"/>
+<text x="568" y="146" class="dtx-s" fill="#ff7b72">fragment</text>
+<text x="568" y="164" class="dtx-s" fill="#ff7b72">NEVER sent to</text>
+<text x="568" y="182" class="dtx-s" fill="#ff7b72">the server at all</text>
+<rect x="20" y="212" width="780" height="130" rx="9" class="dbox2"/>
+<text x="40" y="240" class="dtx-h">What the server actually receives</text>
+<text x="40" y="270" class="dtx-m">GET <tspan fill="#4cc2ff">/cgi/hello.py</tspan><tspan fill="#8fa3ba">?</tspan><tspan fill="#c9a2ff">name=auditor</tspan> HTTP/1.1</text>
+<text x="40" y="296" class="dtx-m">Host: <tspan fill="#7ee787">127.0.0.1</tspan><tspan fill="#8fa3ba">:</tspan><tspan fill="#ffcb6b">8080</tspan></text>
+<text x="40" y="326" class="dtx-s">The scheme is implied, the host moves into a header, and the fragment is simply gone.</text>
+</svg>`;
+
+D.fdesc = `<svg viewBox="0 0 820 380">${AR}
+<rect x="20" y="34" width="300" height="300" rx="11" class="dbox2"/>
+<text x="170" y="60" class="dtx-h" text-anchor="middle">YOUR PROCESS</text>
+<text x="170" y="80" class="dtx-s" text-anchor="middle">a table of small integers</text>
+<rect x="44" y="94" width="252" height="30" rx="5" class="dbox"/>
+<text x="60" y="114" class="dtx-m" fill="#ffcb6b">0</text>
+<text x="96" y="114" class="dtx-s">stdin</text>
+<rect x="44" y="128" width="252" height="30" rx="5" class="dbox"/>
+<text x="60" y="148" class="dtx-m" fill="#ffcb6b">1</text>
+<text x="96" y="148" class="dtx-s">stdout</text>
+<rect x="44" y="162" width="252" height="30" rx="5" class="dbox"/>
+<text x="60" y="182" class="dtx-m" fill="#ffcb6b">2</text>
+<text x="96" y="182" class="dtx-s">stderr</text>
+<rect x="44" y="196" width="252" height="30" rx="5" class="dbox3"/>
+<text x="60" y="216" class="dtx-m" fill="#7ee787">3</text>
+<text x="96" y="216" class="dtx-s">listening socket :8080</text>
+<rect x="44" y="230" width="252" height="30" rx="5" class="dbox3"/>
+<text x="60" y="250" class="dtx-m" fill="#7ee787">4</text>
+<text x="96" y="250" class="dtx-s">listening socket :8081</text>
+<rect x="44" y="264" width="252" height="30" rx="5" class="dbox3"/>
+<text x="60" y="284" class="dtx-m" fill="#7ee787">5</text>
+<text x="96" y="284" class="dtx-s">the epoll object</text>
+<rect x="44" y="298" width="252" height="30" rx="5" class="dbox4"/>
+<text x="60" y="318" class="dtx-m" fill="#ff7b72">9</text>
+<text x="96" y="318" class="dtx-s">a connected client</text>
+<rect x="500" y="34" width="300" height="300" rx="11" class="dbox4"/>
+<text x="650" y="60" class="dtx-h" text-anchor="middle">WHAT THE KERNEL HOLDS</text>
+<text x="650" y="80" class="dtx-s" text-anchor="middle">completely different kinds of thing</text>
+<rect x="524" y="100" width="252" height="40" rx="6" class="dbox"/>
+<text x="650" y="125" class="dtx-s" text-anchor="middle">the terminal</text>
+<rect x="524" y="150" width="252" height="40" rx="6" class="dbox"/>
+<text x="650" y="175" class="dtx-s" text-anchor="middle">a TCP listening socket</text>
+<rect x="524" y="200" width="252" height="40" rx="6" class="dbox"/>
+<text x="650" y="225" class="dtx-s" text-anchor="middle">an epoll interest list</text>
+<rect x="524" y="250" width="252" height="40" rx="6" class="dbox"/>
+<text x="650" y="275" class="dtx-s" text-anchor="middle">a TCP connection</text>
+<rect x="524" y="300" width="252" height="30" rx="6" class="dbox"/>
+<text x="650" y="320" class="dtx-s" text-anchor="middle">a file, a pipe, a device ...</text>
+<path d="M326 112 L518 120" class="dar"/>
+<path d="M326 210 L518 170" class="dar-g"/>
+<path d="M326 278 L518 220" class="dar-g"/>
+<path d="M326 312 L518 270" class="dar-r"/>
+<text x="410" y="352" class="dtx" text-anchor="middle">Your code uses <tspan fill="#7ee787">read()</tspan> and <tspan fill="#7ee787">write()</tspan> on ALL of them, and never has to care which is which.</text>
 </svg>`;
 
 /* ============================ PLAYER ============================ */

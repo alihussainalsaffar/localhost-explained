@@ -10,13 +10,15 @@ together with a **narrated walk-through of the whole thing** that runs in a brow
 Works on a phone, a tablet or a laptop. It reads itself aloud in English, and every
 word spoken is also written on screen, so you can read along with the sound off.
 
-- **24 chapters · 181 slides · about 2 hours 15 minutes**
-- Starts with **the subject read line by line** and **the audit sheet explained**, so you
+- **28 chapters · 201 slides · about 2 hours 40 minutes**
+- Opens with a **glossary of every technical word** used — the internet and HTTP, the
+  operating system, Rust, and Python/the shell/the tools — so nothing later depends on
+  vocabulary you have not met. Then **the subject read line by line** and **the audit sheet explained**, so you
   know what was required before anything else. Then the whole thing **running, command by
   command, with real captured output**. Then the concepts (what a web server is, HTTP on
   the wire, sockets, why blocking is fatal, how `epoll` works). Then the code file by
   file. Then the audit questions with the answers.
-- 22 hand-drawn SVG diagrams for the things prose cannot show.
+- 24 hand-drawn SVG diagrams for the things prose cannot show.
 - Player: play/pause, ±5 s skip, 0.75×–2× speed, voice picker, captions, chapter
   sidebar, scrubbable timeline. **Your position is saved**, so you can stop on the
   train and pick it up later.
