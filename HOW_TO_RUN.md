@@ -180,3 +180,47 @@ command for each.
 | CGI answers 500 | `python3` is not on `PATH`, or the script has a syntax error. Run it by hand: `python3 www/cgi/hello.py`. |
 | Uploads answer 500 | `www/uploads/` is not writable. `chmod u+w www/uploads`. |
 | Throughput looks bad (a few hundred req/s) | You are running from `/mnt/c` under WSL. See the note in step 2. |
+| The editor shows errors but `cargo build` works | Your editor is analysing for Windows. See below — the code is fine. |
+
+### The editor shows red errors that are not real
+
+If you open this project in an editor on Windows, rust-analyzer may underline
+perfectly good code:
+
+```
+could not find `unix` in `os`
+no method named `as_raw_fd` found for reference `&ChildStdout`
+cannot find function `epoll_create1` in crate `libc`
+cannot find function `fcntl` in crate `libc`
+cannot find struct, variant or union type `epoll_event` in crate `libc`
+cannot find value `EPOLL_CTL_ADD` in crate `libc`
+```
+
+**Nothing is wrong with the code.** This server is Linux-only by design: it uses
+`epoll`, `std::os::unix` and the Linux half of the `libc` crate. Every one of
+those items is `#[cfg(unix)]`-gated, so they genuinely do not exist when the code
+is analysed for a Windows target — and by default rust-analyzer analyses for
+whatever machine you are sitting at. The compiler even says so if you look at the
+full message: *"found an item that was configured out … the item is gated here"*.
+
+The fix is to point the editor at the platform this program actually runs on.
+`.vscode/settings.json` in this repo already does that; it needs the Linux
+standard library present, which is a one-off:
+
+```bash
+rustup target add x86_64-unknown-linux-gnu
+```
+
+`cargo check` never links, so no cross-linker is needed. To confirm it worked,
+from Windows:
+
+```bash
+cargo check --target x86_64-unknown-linux-gnu
+```
+
+That should finish with no errors. Reload the editor window afterwards.
+
+> The alternative, and arguably the better workflow, is to open the folder
+> **inside WSL** (VS Code's "WSL" extension, or `code .` from a WSL shell). Then
+> the editor, cargo and the server all run on Linux, everything resolves with no
+> configuration, and `cargo build` produces a binary you can actually run.

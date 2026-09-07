@@ -1,0 +1,39 @@
+{
+  // This server is Linux-only: it calls epoll, and uses std::os::unix and the
+  // Linux half of the libc crate. Those items are #[cfg(unix)]-gated, so an
+  // editor analysing the code for a Windows target reports them as missing:
+  //
+  //   could not find `unix` in `os`
+  //   no method named `as_raw_fd` found for reference `&ChildStdout`
+  //   cannot find function `epoll_create1` in crate `libc`
+  //   cannot find struct `epoll_event` in crate `libc`
+  //   cannot find value `EPOLL_CTL_ADD` in crate `libc`
+  //
+  // None of those are real: the code compiles clean on Linux. They only mean
+  // rust-analyzer was pointed at the wrong platform. This setting points it at
+  // Linux, which is where this program actually runs.
+  //
+  // It needs the Linux standard library to be present. Once, on Windows:
+  //     rustup target add x86_64-unknown-linux-gnu
+  // (`cargo check` never links, so no cross-linker is required.)
+  "rust-analyzer.cargo.target": "x86_64-unknown-linux-gnu",
+
+  // Give the editor's checks their own build directory. Otherwise Windows
+  // rust-analyzer and the real WSL build share target/, each invalidates the
+  // other's fingerprints, and every build starts from scratch.
+  "rust-analyzer.cargo.extraEnv": { "CARGO_TARGET_DIR": "target/rust-analyzer" },
+  "rust-analyzer.check.extraEnv": { "CARGO_TARGET_DIR": "target/rust-analyzer" },
+
+  // Analyse the normal targets only; --all-targets adds benches and examples
+  // this project does not have, and just slows the check down.
+  "rust-analyzer.check.allTargets": false,
+
+  "[rust]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  },
+
+  // The Python test scripts are Linux-flavoured too (they use /dev/urandom,
+  // /proc and ss); they are meant to be run from WSL, not from Windows.
+  "files.eol": "\n"
+}
